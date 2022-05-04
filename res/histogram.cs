@@ -17,10 +17,11 @@ void main()
     atomicAdd(blue[index.b], 1);
     atomicAdd(green[index.g], 1);
 
-    color = texelFetch(tex, ivec3(coord, 0), 1).xyz;
-    index = ivec3(color * 255);
+    // Second layer
+    // color = texelFetch(tex, ivec3(coord, 0), 1).xyz;
+    // index = ivec3(color * 255);
 
-    atomicAdd(red[index.r], 1);
-    atomicAdd(blue[index.b], 1);
-    atomicAdd(green[index.g], 1);
+    // atomicAdd(red[index.r], 1);
+    // atomicAdd(blue[index.b], 1);
+    // atomicAdd(green[index.g], 1);
 }

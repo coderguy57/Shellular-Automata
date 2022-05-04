@@ -115,17 +115,20 @@ void Window::run(Engine *engine, std::vector<GuiControl *> guis)
 
         engine->start();
         auto engine_shader = engine->program;
-        for (auto gui : guis)
-        {
-            gui->update(engine_shader);
-        }
         if (!window_controller->is_paused())
         {
+            for (auto gui : guis)
+            {
+                gui->update(engine_shader);
+            }
             engine->step();
-        }
-        for (auto gui : guis)
-        {
-            gui->post_process(engine->current_texture());
+            engine->step();
+            engine->step();
+            engine->step();
+            for (auto gui : guis)
+            {
+                gui->post_process(engine->current_texture());
+            }
         }
 
         // ImGui::ShowDemoWindow();

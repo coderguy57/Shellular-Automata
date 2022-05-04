@@ -12,7 +12,7 @@ struct TextureOptions
     GLuint wrap_t = GL_REPEAT;
     GLuint min_filter = GL_NEAREST;
     GLuint mag_filter = GL_NEAREST;
-    GLuint internal_format = GL_RGBA16;
+    GLuint internal_format = GL_RGBA32F;
     GLuint format = GL_RGBA;
     GLuint type = GL_HALF_FLOAT;
 };

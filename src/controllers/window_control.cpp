@@ -42,6 +42,11 @@ void WindowControl::draw()
     {
         _paused = !_paused;
     }
+    if (ImGui::IsKeyPressed('0'))
+    {
+        _paused = false;
+        _step = true;
+    }
     if (ImGui::BeginMainMenuBar())
     {
         if (ImGui::BeginMenu("Application"))
@@ -49,6 +54,12 @@ void WindowControl::draw()
             if (ImGui::MenuItem(_paused ? "Play" : "Paused", "Space"))
             {
                 _paused = !_paused;
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Step", "0"))
+            {
+                _paused = false;
+                _step = true;
             }
             ImGui::Separator();
             if (ImGui::MenuItem("Save video", "..."))
@@ -113,6 +124,14 @@ void WindowControl::post_process(Texture *texture)
             delete saver;
             it = _texture_saver.erase(it);
         }
-        it++;
+        else
+        {
+            it++;
+        }
+    }
+    if (_step)
+    {
+        _paused = true;
+        _step = false;
     }
 }

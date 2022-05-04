@@ -29,6 +29,7 @@ private:
     void draw_video_window();
     bool _paused = false;
     bool _quit = false;
+    bool _step = false;
 
     bool _show_video_window;
     bool _do_save;

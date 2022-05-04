@@ -17,6 +17,8 @@ StatisticsControl::~StatisticsControl()
 
 void StatisticsControl::draw_histogram()
 {
+    int width = 512;
+    int height = 512;
     auto format_data = [](std::vector<int> data)
     {
         std::vector<float> out(256);
@@ -24,21 +26,21 @@ void StatisticsControl::draw_histogram()
             out[i] = std::log(data[i] + 1);
         return out;
     };
-    auto total_color = [](std::vector<int> data)
+    auto total_color = [width, height](std::vector<int> data)
     {
         uint64_t total = 0;
         for (int i = 0; i < 256; i++)
             total += data[i] * i;
-        return total;
+        return (100.f * total) / (width * height * 255);
     };
     ImGui::Begin("Histograms", &_show_histogram,
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
     ImGui::PlotLines("", &format_data(_r_histogram)[0], 256, 0, "Red");
-    ImGui::Text("Total: %ld", total_color(_r_histogram));
+    ImGui::Text("Total: %2.3f", total_color(_r_histogram));
     ImGui::PlotLines("", &format_data(_g_histogram)[0], 256, 0, "Green");
-    ImGui::Text("Total: %ld", total_color(_g_histogram));
+    ImGui::Text("Total: %2.3f", total_color(_g_histogram));
     ImGui::PlotLines("", &format_data(_b_histogram)[0], 256, 0, "Blue");
-    ImGui::Text("Total: %ld", total_color(_b_histogram));
+    ImGui::Text("Total: %2.3f", total_color(_b_histogram));
     ImGui::End();
 }
 

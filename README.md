@@ -1,5 +1,9 @@
 # ShellularAutomata
 
+<img src="shell.jpg" width="50%" height="50%">
+
+An continuous CA engine building on the works of [Slackermanz](https://github.com/Slackermanz/VulkanAutomata).
+
 ## Build on Linux
 
 ### Debian-based distros

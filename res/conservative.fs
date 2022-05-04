@@ -3,7 +3,7 @@
 #define LN 2.71828182846
 
 out vec4 out_col;
-uniform sampler2D tex;
+uniform sampler2DArray tex;
 uniform uint[12] nb;
 uniform uint[24] ur;
 uniform uint[2] us; //= uint[2] (ub.v36, ub.v37);
@@ -29,8 +29,8 @@ uniform uint frames;
 //	----    ----    ----    ----    ----    ----    ----    ----
 
 const uint MAX_RADIUS = 16u;
-const uint PULL_RAD = 8u;
-const uint PUSH_RAD = 3u;
+const uint PULL_RAD = 4u;
+const uint PUSH_RAD = 0u;
 const float pull_scale = 5.;
 const float push_scale = 1.;
 
@@ -79,22 +79,24 @@ float hmp2(float x, float w) {
 	return 3.0 * ((x - 0.5) * (x - 0.5)) + 0.25;
 }
 
-vec4 gdv(ivec2 of, sampler2D tx) {
+vec4 gdv(ivec2 of, sampler2DArray tx) {
 	of = ivec2(gl_FragCoord) + of;
 	of[0] = (of[0] + textureSize(tx, 0)[0]) & (textureSize(tx, 0)[0] - 1);
 	of[1] = (of[1] + textureSize(tx, 0)[1]) & (textureSize(tx, 0)[1] - 1);
-	return texelFetch(tx, of, 0);
+	return texelFetch(tx, ivec3(of, 0.), 0);
 }
 
-float get_flow(ivec2 pos_offset, sampler2D tx, float local_demand) {
+float get_flow(ivec2 pos_offset, sampler2DArray tx, float local_demand) {
 	vec4 t = gdv( pos_offset, tx );
 	float supply = t[0];
 	float total_demand = t[2];
 	float used_supply = min(supply, total_demand);
-	float current_flow = total_demand == 0? 0 : local_demand / total_demand * used_supply;
+	// used_supply = min(used_supply, 1.);
+	float current_flow = total_demand == 0? 0 : (local_demand / total_demand) * used_supply;
+	// current_flow = min(current_flow, local_demand);
 	return current_flow; }
 
-vec4[2] nbhd( vec2 r, sampler2D tx ) {
+vec4[2] nbhd( vec2 r, sampler2DArray tx ) {
 	float	psn = 65536.0;
 	vec4	a = vec4(0);
 	vec4 	b = vec4(0);
@@ -181,7 +183,7 @@ float reseed(uint seed, float scl, float amp) {
 }
 
 vec4 place(vec4 col, float sz, vec2 mxy, uint s, float off) {
-	mxy *= textureSize(tex, 0);
+	mxy *= textureSize(tex, 0).xy;
 	vec2 dxy = (vec2(gl_FragCoord) - mxy) * (vec2(gl_FragCoord) - mxy);
 	float dist = sqrt(dxy[0] + dxy[1]);
 	float cy = mod(frames + off, 213.0) / 213.0;
@@ -212,24 +214,17 @@ void main() {
 
 //	NH Rings
 	vec4[MAX_RADIUS][2] nh_rings_c;
+	vec4[2] nbh = {vec4(0.), vec4(0.)};
 	if(stage == GET_DEMAND) {
 		for(uint i = 0u; i < MAX_RADIUS; i++) {
 			nh_rings_c[i] = nbhd(vec2(i + 1u, i), tex);
 		}
 	} else if(stage == PUSH_DEMAND) {
-		nh_rings_c[0] = nbhd(vec2(PUSH_DEMAND, 0), tex);
-		// for(uint i = 0u; i < PUSH_RAD; i++) {
-		// 	nh_rings_c[i] = nbhd(vec2(i + 1u, i), tex);
-		// }
+		nbh = nbhd(vec2(PUSH_RAD, 0), tex);
 	} else if(stage == GET_TOTAL_DEMAND) {
-		nh_rings_c[0] = nbhd(vec2(PULL_RAD, 0), tex);
-		for(uint i = 0u; i < PULL_RAD; i++) {
-		}
+		nbh = nbhd(vec2(PULL_RAD, 0), tex);
 	} else if (stage == CALC_FLOW) {
-		nh_rings_c[0] = nbhd(vec2(PULL_RAD, 0), tex);
-		// for(uint i = 0u; i < PULL_RAD; i++) {
-		// 	nh_rings_c[i] = nbhd(vec2(i + 1u, i), tex);
-		// }
+		nbh = nbhd(vec2(PULL_RAD, 0), tex);
 	}
 
 //	Parameters
@@ -267,37 +262,36 @@ void main() {
 			res_v[3] = min(1., push_scale * abs(res_v[1])) / area;
 			res_v[1] = 0.;
 		}
+		// Set the PULL AREA
+		res_v[2] = 1.;
+		for(uint i = 0u; i < PULL_RAD; i++) {
+			res_v[2] += nh_rings_c[i][1][0];
+		}
 	}
 	if(stage == PUSH_DEMAND) {
-		float area = ((2 * PULL_RAD + 1) * (2 * PULL_RAD + 1));
+		// float area = ((2 * PULL_RAD + 1) * (2 * PULL_RAD + 1));
+		float area = res_v[2];
 		float sum = 0.;
-		sum += nh_rings_c[0][0][3];
-		// for(uint i = 0u; i < PUSH_RAD; i++) {
-		// 	sum += nh_rings_c[i][0][3];
-		// }
+		sum += nbh[0][3];
 		res_v[1] += sum;
 		res_v[1] = min(1., res_v[1]);
-		res_v[1] = res_v[1] / area;
 		res_v[1] = min(res_v[1], 1. - res_v[0]);
+		res_v[1] = res_v[1] / area;
 	}
 	if(stage == GET_TOTAL_DEMAND) {
 		float sum = res_v[1];
-		// for(uint i = 0u; i < PULL_RAD; i++) {
-		sum += nh_rings_c[0][0][1];
-		// }
+		sum += nbh[0][1];
 		res_v[2] = sum;
 	}
 	if(stage == CALC_FLOW) {
 		float local_demand = gdv(ivec2(0, 0), tex)[1];
 		float sum = get_flow(ivec2(0, 0), tex, local_demand);
-		sum += nh_rings_c[0][0][0];
-		// for(uint i = 0u; i < PULL_RAD; i++) {
-		// 	sum += nh_rings_c[i][0][0];
-		// }
-		// res_v[0] -= max(0., min(res_v[0], res_v[2]));
+		sum += nbh[0][0];
+
 		res_v[0] -= min(res_v[0], res_v[2]);
 		res_v[0] += sum;
-		// res_v[0] += nh_rings_c[0][0][0];
+		res_v[0] = min(1., res_v[0]);
+		res_v[0] = max(0., res_v[0]);
 		res_v[1] = 0.;
 		res_v[2] = 0.;
 	}
@@ -321,6 +315,8 @@ void main() {
 
 	if(mlr.x != 0u) {
 		res_c = mouse(res_c, 38.0);	}
+	if(mlr.y != 0u) {
+		res_c.r = mouse(res_c, 38.0).r;	}
 
 	//	Force alpha to 1.0
 	// res_c[3] = 1.0;

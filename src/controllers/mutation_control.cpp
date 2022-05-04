@@ -370,12 +370,6 @@ void MutationControl::draw()
                 _frames = 0;
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Reset", "Q"))
-            {
-                _reset = true;
-                _frames = 0;
-            }
-            ImGui::Separator();
             if (ImGui::MenuItem("Mutate", "V"))
             {
                 for (size_t i = 0; i < 48; i++)
