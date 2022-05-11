@@ -8,7 +8,7 @@
 class Engine
 {
 public:
-    Engine(uint width, uint heigth, uint depth, std::string frag_path);
+    Engine(uint width, uint heigth, uint depth, std::string frag_path, uint stages = 1);
     ~Engine();
     void start();
     void step();
@@ -22,6 +22,7 @@ private:
     RenderSurface *_surface;
     uint _width;
     uint _height;
+    uint _stages;
     bool _tex0_last_drawn = false;
     uint _counter = 1560281088;
 };

@@ -19,6 +19,7 @@ public:
 private:
     void draw_histogram();
 
+    int _area = 1;
     bool _show_histogram = false;
     ComputeProgram *_histogram_calc;
     std::vector<int> _r_histogram;

@@ -26,6 +26,7 @@ private:
     float _scale = 80;
     float _zoom = 0;
     bool _reset = true;
+    bool _clear = false;
     int _mode = 0;
     uint32_t _frames = 0;
 };

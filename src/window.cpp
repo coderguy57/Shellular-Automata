@@ -122,9 +122,6 @@ void Window::run(Engine *engine, std::vector<GuiControl *> guis)
                 gui->update(engine_shader);
             }
             engine->step();
-            engine->step();
-            engine->step();
-            engine->step();
             for (auto gui : guis)
             {
                 gui->post_process(engine->current_texture());

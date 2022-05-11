@@ -336,6 +336,10 @@ void MutationControl::draw()
         _reset = true;
         _frames = 0;
     }
+    if (ImGui::IsKeyPressed('P'))
+    {
+        _clear = true;
+    }
     if (ImGui::IsKeyPressed('S'))
     {
         _mutation_save = _mutation;
@@ -368,6 +372,11 @@ void MutationControl::draw()
             {
                 _reset = true;
                 _frames = 0;
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Clear", "P"))
+            {
+                _clear = true;
             }
             ImGui::Separator();
             if (ImGui::MenuItem("Mutate", "V"))
@@ -433,11 +442,17 @@ void MutationControl::update(Program *program)
     program->set_uniform("mxy", mouse_pos.x, mouse_pos.y);
     program->set_uniform("mlr", left_click, right_click);
     program->set_uniform("mode", (uint32_t)_mode);
-    program->set_uniform("cmd", (uint32_t)_reset);
+    if (_reset)
+        program->set_uniform("cmd", (uint32_t)1);
+    else if (_clear)
+        program->set_uniform("cmd", (uint32_t)2);
+    else
+        program->set_uniform("cmd", (uint32_t)0);
     program->set_uniform("zoom", _zoom);
     program->set_uniform("scale", _scale);
     program->set_uniform("frames", _frames);
     // program->set_uniform("stage", (uint32_t)frames % 4);
     _reset = false;
+    _clear = false;
     _frames++;
 }

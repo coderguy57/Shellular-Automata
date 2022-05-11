@@ -17,8 +17,6 @@ StatisticsControl::~StatisticsControl()
 
 void StatisticsControl::draw_histogram()
 {
-    int width = 512;
-    int height = 512;
     auto format_data = [](std::vector<int> data)
     {
         std::vector<float> out(256);
@@ -26,12 +24,13 @@ void StatisticsControl::draw_histogram()
             out[i] = std::log(data[i] + 1);
         return out;
     };
-    auto total_color = [width, height](std::vector<int> data)
+    int area = _area;
+    auto total_color = [area](std::vector<int> data)
     {
         uint64_t total = 0;
         for (int i = 0; i < 256; i++)
             total += data[i] * i;
-        return (100.f * total) / (width * height * 255);
+        return (100.f * total) / (area * 255);
     };
     ImGui::Begin("Histograms", &_show_histogram,
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
@@ -66,6 +65,7 @@ void StatisticsControl::draw()
 
 void StatisticsControl::post_process(Texture *texture)
 {
+    _area = texture->width * texture->height;
     if (_show_histogram)
     {
         _histogram_calc->use();
@@ -78,7 +78,7 @@ void StatisticsControl::post_process(Texture *texture)
         Buffer<int> green(empty_data);
         green.set_layout(7);
         _histogram_calc->set_texture(0, "tex", texture);
-        _histogram_calc->run(64, 64, 1);
+        _histogram_calc->run(texture->width / 8, texture->height / 8, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
         _r_histogram = red.read();
         _b_histogram = blue.read();

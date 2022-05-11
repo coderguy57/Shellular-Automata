@@ -29,7 +29,7 @@ uniform uint frames;
 //	----    ----    ----    ----    ----    ----    ----    ----
 
 const uint MAX_RADIUS = 16u;
-const uint PULL_RAD = 4u;
+const uint PULL_RAD = 8u;
 const uint PUSH_RAD = 0u;
 const float pull_scale = 5.;
 const float push_scale = 1.;
@@ -96,10 +96,14 @@ float get_flow(ivec2 pos_offset, sampler2DArray tx, float local_demand) {
 	// current_flow = min(current_flow, local_demand);
 	return current_flow; }
 
-vec4[2] nbhd( vec2 r, sampler2DArray tx ) {
+struct ConvData {
+	vec4 	value;
+	float 	total;
+};
+ConvData nbhd( vec2 r, sampler2DArray tx ) {
 	float	psn = 65536.0;
-	vec4	a = vec4(0);
-	vec4 	b = vec4(0);
+	vec4	value = vec4(0);
+	float 	total = 0;
 	float local_demand  = gdv( ivec2( 0, 0), tx )[1];
 
 	vec2 r2 = ceil(r + vec2(0.5)) - vec2(0.500001);
@@ -108,28 +112,27 @@ vec4[2] nbhd( vec2 r, sampler2DArray tx ) {
 		vec2 bound = sqrt(max(vec2(0),r2 - vec2(j*j)));
 		for(float i = floor(bound[1])+1; i <= bound[0]; i++) {
 			if (stage == CALC_FLOW) {
-				// float t  = get_flow( ivec2( 0, 0), tx, local_demand ); a += t;
-				b += 4.0;
-				a += get_flow( ivec2( i, j), tx, local_demand );
-				a += get_flow( ivec2( j,-i), tx, local_demand );
-				a += get_flow( ivec2(-i,-j), tx, local_demand );
-				a += get_flow( ivec2(-j, i), tx, local_demand );
+				total += 4.0;
+				value += get_flow( ivec2( i, j), tx, local_demand );
+				value += get_flow( ivec2( j,-i), tx, local_demand );
+				value += get_flow( ivec2(-i,-j), tx, local_demand );
+				value += get_flow( ivec2(-j, i), tx, local_demand );
 			} else {
-				b += 4.0;
-				a += gdv( ivec2( i, j), tx );
-				a += gdv( ivec2( j,-i), tx );
-				a += gdv( ivec2(-i,-j), tx );
-				a += gdv( ivec2(-j, i), tx );
+				total += 4.0;
+				value += gdv( ivec2( i, j), tx );
+				value += gdv( ivec2( j,-i), tx );
+				value += gdv( ivec2(-i,-j), tx );
+				value += gdv( ivec2(-j, i), tx );
 			} } } 
-	return vec4[2](a, b); }
+	return ConvData(value, total); }
 
-vec4 bitring(vec4[MAX_RADIUS][2] rings, uint bits, uint of) {
+vec4 bitring(ConvData[MAX_RADIUS] rings, uint bits, uint of) {
 	vec4 sum = vec4(0.0, 0.0, 0.0, 0.0);
-	vec4 tot = vec4(0.0, 0.0, 0.0, 0.0);
+	float tot = 0.;
 	for(uint i = 0u; i < MAX_RADIUS; i++) {
 		if(u32_upk(bits, 1u, i + of) == 1u) {
-			sum += rings[i][0];
-			tot += rings[i][1];
+			sum += rings[i].value;
+			tot += rings[i].total;
 		}
 	}
 	return sigm((sum / tot), LN);
@@ -213,8 +216,8 @@ void main() {
 //	----    ----    ----    ----    ----    ----    ----    ----
 
 //	NH Rings
-	vec4[MAX_RADIUS][2] nh_rings_c;
-	vec4[2] nbh = {vec4(0.), vec4(0.)};
+	ConvData[MAX_RADIUS] nh_rings_c;
+	ConvData nbh = {vec4(0.), 0.};
 	if(stage == GET_DEMAND) {
 		for(uint i = 0u; i < MAX_RADIUS; i++) {
 			nh_rings_c[i] = nbhd(vec2(i + 1u, i), tex);
@@ -265,14 +268,14 @@ void main() {
 		// Set the PULL AREA
 		res_v[2] = 1.;
 		for(uint i = 0u; i < PULL_RAD; i++) {
-			res_v[2] += nh_rings_c[i][1][0];
+			res_v[2] += nh_rings_c[i].total;
 		}
 	}
 	if(stage == PUSH_DEMAND) {
 		// float area = ((2 * PULL_RAD + 1) * (2 * PULL_RAD + 1));
 		float area = res_v[2];
 		float sum = 0.;
-		sum += nbh[0][3];
+		sum += nbh.value[3];
 		res_v[1] += sum;
 		res_v[1] = min(1., res_v[1]);
 		res_v[1] = min(res_v[1], 1. - res_v[0]);
@@ -280,13 +283,13 @@ void main() {
 	}
 	if(stage == GET_TOTAL_DEMAND) {
 		float sum = res_v[1];
-		sum += nbh[0][1];
+		sum += nbh.value[1];
 		res_v[2] = sum;
 	}
 	if(stage == CALC_FLOW) {
 		float local_demand = gdv(ivec2(0, 0), tex)[1];
 		float sum = get_flow(ivec2(0, 0), tex, local_demand);
-		sum += nbh[0][0];
+		sum += nbh.value[0];
 
 		res_v[0] -= min(res_v[0], res_v[2]);
 		res_v[0] += sum;
@@ -314,7 +317,7 @@ void main() {
 		res_c[3] = 1.0; }
 
 	if(mlr.x != 0u) {
-		res_c = mouse(res_c, 38.0);	}
+		res_c = mouse(res_c, 138.0);	}
 	if(mlr.y != 0u) {
 		res_c.r = mouse(res_c, 38.0).r;	}
 

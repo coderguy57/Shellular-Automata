@@ -34,5 +34,9 @@ void main() {
     //     float a2 = texture(tex, vec3(coord, 1), 0).a;
     //     frag_colour = vec4(a1, a2, 0, 1.);
     // }
+    // frag_colour.r = 0;
+    // frag_colour.g = 0;
+    // frag_colour.b = 2. * abs(frag_colour.b - 0.5);
+    // frag_colour.b = mix(frag_colour.b, frag_colour.a, 0.5);
     frag_colour.a = 1;
 }
