@@ -8,7 +8,7 @@
 class Engine
 {
 public:
-    Engine(uint width, uint heigth, uint depth, std::string frag_path, uint stages = 1);
+    Engine(uint width, uint heigth, uint depth, std::string frag_path, GLuint internal_format, uint stages = 1);
     ~Engine();
     void start();
     void step();

@@ -38,5 +38,9 @@ void main() {
     // frag_colour.g = 0;
     // frag_colour.b = 2. * abs(frag_colour.b - 0.5);
     // frag_colour.b = mix(frag_colour.b, frag_colour.a, 0.5);
+
+    // Post processing
+    frag_colour.rgb *= 0.7;
+    frag_colour.rgb = pow(frag_colour.rgb, vec3(1. / 2.2)); // SRGB -> RGB
     frag_colour.a = 1;
 }

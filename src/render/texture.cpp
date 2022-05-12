@@ -1,7 +1,9 @@
 #include "texture.hpp"
 
 Texture::Texture(uint32_t _width, uint32_t _height, uint32_t _depth, TextureOptions options)
-    : width(_width), height(_height), depth(_depth), target{options.target} {
+    : width(_width), height(_height), depth(_depth), target{options.target}
+{
+    this->options = options;
     glGenTextures(1, &gl_tex_num);
     glBindTexture(target, gl_tex_num);
     if (target == GL_TEXTURE_2D_ARRAY)
@@ -18,20 +20,23 @@ Texture::Texture(uint32_t _width, uint32_t _height, uint32_t _depth, TextureOpti
 /**
  * Binds the texture to the current OpenGL context
  */
-void Texture::gen_mipmap() const {
+void Texture::gen_mipmap() const
+{
     glGenerateMipmap(gl_tex_num);
 }
 
 /**
  * Binds the texture to the current OpenGL context
  */
-void Texture::bind() const {
+void Texture::bind() const
+{
     glBindTexture(target, gl_tex_num);
 }
 
 /**
  * Deletes the OpenGL representation of this texture
-  */
-void Texture::delete_opengl() {
+ */
+void Texture::delete_opengl()
+{
     glDeleteTextures(1, &gl_tex_num);
 }

@@ -5,6 +5,8 @@
 
 StatisticsControl::StatisticsControl()
 {
+    _dft_calc_x = new ComputeProgram("fft_x.glsl");
+    _dft_calc_y = new ComputeProgram("fft_y.glsl");
     _histogram_calc = new ComputeProgram("histogram.cs");
     _r_histogram = std::vector<int>(256, 0);
     _g_histogram = std::vector<int>(256, 0);
@@ -43,6 +45,17 @@ void StatisticsControl::draw_histogram()
     ImGui::End();
 }
 
+void StatisticsControl::draw_dft()
+{
+    ImGui::Begin("DFT", &_show_dft,
+                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse);
+    ImGui::BeginChild("GameRender");
+    ImVec2 img_size = ImGui::GetWindowSize();
+    ImGui::Image((ImTextureID)_dft_tex->gl_tex_num, img_size, ImVec2(0, 1), ImVec2(1, 0));
+    ImGui::EndChild();
+    ImGui::End();
+}
+
 void StatisticsControl::draw()
 {
     if (ImGui::BeginMainMenuBar())
@@ -53,6 +66,11 @@ void StatisticsControl::draw()
             {
                 _show_histogram = !_show_histogram;
             }
+            ImGui::Separator();
+            if (ImGui::MenuItem("DFT", ""))
+            {
+                _show_dft = !_show_dft;
+            }
             ImGui::EndMenu();
         }
         ImGui::Separator();
@@ -61,6 +79,9 @@ void StatisticsControl::draw()
     }
     if (_show_histogram)
         draw_histogram();
+
+    if (_show_dft)
+        draw_dft();
 }
 
 void StatisticsControl::post_process(Texture *texture)
@@ -83,5 +104,30 @@ void StatisticsControl::post_process(Texture *texture)
         _r_histogram = red.read();
         _b_histogram = blue.read();
         _g_histogram = green.read();
+    }
+    if (!_dft_tex)
+    {
+        TextureOptions options;
+        options.internal_format = texture->options.internal_format;
+        _dft_tex_part = new Texture(texture->width, texture->height, 1, options);
+        _dft_tex = new Texture(texture->width, texture->height, 1, options);
+    }
+    if (_show_dft)
+    {
+        _dft_calc_x->use();
+        glMemoryBarrier(GL_ALL_BARRIER_BITS);
+        _dft_calc_x->set_texture(0, "in_tex", texture);
+        _dft_calc_x->set_texture(1, "out_tex", _dft_tex_part);
+        glBindImageTexture(1, _dft_tex_part->gl_tex_num, 0, false, 0, GL_WRITE_ONLY, _dft_tex_part->options.internal_format);
+        _dft_calc_x->run(1, texture->height, 1);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+        _dft_calc_y->use();
+        glMemoryBarrier(GL_ALL_BARRIER_BITS);
+        _dft_calc_y->set_texture(0, "in_tex", _dft_tex_part);
+        _dft_calc_y->set_texture(1, "out_tex", _dft_tex);
+        glBindImageTexture(1, _dft_tex->gl_tex_num, 0, false, 0, GL_WRITE_ONLY, _dft_tex->options.internal_format);
+        _dft_calc_y->run(texture->width, 1, 1);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     }
 }

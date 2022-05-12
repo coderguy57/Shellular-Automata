@@ -8,12 +8,13 @@
 #include "render/shader.hpp"
 #include "render/texture.hpp"
 
-Engine::Engine(uint width, uint height, uint depth, std::string frag_path, uint stages)
+Engine::Engine(uint width, uint height, uint depth, std::string frag_path, GLuint internal_format, uint stages)
     : _width(width), _height(height), _stages(stages)
 {
     _surface = new RenderSurface();
     TextureOptions option{};
     option.target = GL_TEXTURE_2D_ARRAY;
+    option.internal_format = internal_format;
 
     _tex0 = new Texture(_width, _height, depth, option);
     _tex1 = new Texture(_width, _height, depth, option);

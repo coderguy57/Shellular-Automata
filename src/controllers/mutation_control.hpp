@@ -23,7 +23,7 @@ private:
     std::vector<uint32_t> _mutation_save;
     std::vector<uint8_t> _mutation_scale;
     int _mutation_chance = 100;
-    float _scale = 80;
+    float _scale = 70;
     float _zoom = 0;
     bool _reset = true;
     bool _clear = false;
