@@ -26,7 +26,7 @@ void StatisticsControl::draw_histogram()
             out[i] = std::log(data[i] + 1);
         return out;
     };
-    int area = _area;
+    float area = _area;
     auto total_color = [area](std::vector<int> data)
     {
         uint64_t total = 0;
@@ -34,14 +34,27 @@ void StatisticsControl::draw_histogram()
             total += data[i] * i;
         return (100.f * total) / (area * 255);
     };
+    auto entropy = [area](std::vector<int> data)
+    {
+        float entropy = 0;
+        for (int i = 0; i < 256; i++) {
+            float propabilty = data[i] / area;
+            if (propabilty != 0)
+                entropy -= propabilty * std::log2(propabilty);
+        }
+        return entropy;
+    };
     ImGui::Begin("Histograms", &_show_histogram,
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
     ImGui::PlotLines("", &format_data(_r_histogram)[0], 256, 0, "Red");
     ImGui::Text("Total: %2.3f", total_color(_r_histogram));
+    ImGui::Text("Entropy: %2.3f", entropy(_r_histogram));
     ImGui::PlotLines("", &format_data(_g_histogram)[0], 256, 0, "Green");
     ImGui::Text("Total: %2.3f", total_color(_g_histogram));
+    ImGui::Text("Entropy: %2.3f", entropy(_g_histogram));
     ImGui::PlotLines("", &format_data(_b_histogram)[0], 256, 0, "Blue");
     ImGui::Text("Total: %2.3f", total_color(_b_histogram));
+    ImGui::Text("Entropy: %2.3f", entropy(_b_histogram));
     ImGui::End();
 }
 
