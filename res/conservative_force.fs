@@ -327,7 +327,9 @@ void main() {
 		// res_c.b = mix(target, res_c.b, 0.9999);
 		// res_c.b = mix(res_c.r, res_c.b, 0.99);
 
+		// !res_c.b = mix(demand.r * area, res_c.b, 0.998);
 		res_c.b = mix(demand.r * area, res_c.b, 0.998);
+
 		// res_c.a = mix(demand.g * area, res_c.a, 0.99);
 		// demand.b = 0.;
 
@@ -370,9 +372,9 @@ void main() {
 //	----    ----    ----    ----    ----    ----    ----    ----
 
 	if(frames <= 0u || cmd == 1u) {
-		res_c[0] = 0.5 * (1.-lmap()) * reseed(u32_upk(v63, 8u, 24u) + 0u, 1.0, 0.4);
-		res_c[1] = 0.5 * lmap() * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
-		res_c[2] = 0.5 * (0.5 - abs(0.5-lmap())) * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
+		res_c[0] = 0.2 * (1.-lmap()) * reseed(u32_upk(v63, 8u, 24u) + 0u, 1.0, 0.4);
+		res_c[1] = 0.2 * lmap() * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
+		res_c[2] = 0.2 * vmap() * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
 		// res_c[1] = 0.;
 		// res_c[2] = reseed(u32_upk(v63, 8u, 24u) + 0u, 1.0, 0.4);
 		// res_c[2] = 0.;

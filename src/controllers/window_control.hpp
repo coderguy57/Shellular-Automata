@@ -34,7 +34,8 @@ private:
     bool _show_video_window;
     bool _do_save;
     int _video_frame;
-    int _capture_frequence;
+    int _output_fps = 20;
+    int _capture_frequence = 10;
     int _capture_wait;
     std::string _video_name;
     std::vector<Texture *> _frames_to_save;

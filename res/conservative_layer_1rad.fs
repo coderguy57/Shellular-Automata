@@ -23,13 +23,6 @@ uniform uint stage;
 
 uniform uint v63;
 uniform uint frames;
-
-uniform vec3 paint_color;
-uniform vec3 paint_mask;
-uniform int paint_size;
-uniform int paint_layer;
-uniform bool paint_smooth;
-
 // Define states
 #define GET_DEMAND 0u
 #define PUSH_DEMAND 3u
@@ -38,8 +31,8 @@ uniform bool paint_smooth;
 
 //	----    ----    ----    ----    ----    ----    ----    ----
 
-const uint MAX_RADIUS = 4u;
-const uint PULL_RAD = 4u;
+const uint MAX_RADIUS = 1u;
+const uint PULL_RAD = 8u;
 const uint PUSH_RAD = 0u;
 const float pull_scale = 5.;
 const float push_scale = 1.;
@@ -198,16 +191,6 @@ float reseed(uint seed, float scl, float amp) {
 	return clamp(sqrt((r0 + r1) * r3 * (amp + 1.2)) - r2 * (amp * 1.8 + 0.2), 0.0, 1.0);
 }
 
-vec4 place(vec4 col1, vec4 col2, float sz, vec2 mxy) {
-	mxy *= textureSize(tex, 0).xy;
-	vec2 dxy = (vec2(gl_FragCoord) - mxy) * (vec2(gl_FragCoord) - mxy);
-	float dist = sqrt(dxy[0] + dxy[1]);
-	float lamda = min(dist / sz, 1.);
-	lamda = paint_smooth ? lamda : step(1., lamda);
-	col2 = mix(col1, col2, vec4(paint_mask, 1.));
-	return mix(col2, col1, lamda);
-}
-
 vec4 place(vec4 col, float sz, vec2 mxy, uint s, float off) {
 	mxy *= textureSize(tex, 0).xy;
 	vec2 dxy = (vec2(gl_FragCoord) - mxy) * (vec2(gl_FragCoord) - mxy);
@@ -264,7 +247,6 @@ void main() {
 	vec4 total_demand = gdv(ivec2(0, 0), tex, 2);
 	// vec4 push = gdv(ivec2(0, 0), tex, 3);
 
-	float area = 0.;
 	if(stage == GET_DEMAND) {
 		demand = vec4(0);
 		for(uint i = 0u; i < 24u; i++) {
@@ -289,13 +271,13 @@ void main() {
 		demand *= pull_scale;
 		demand = max(demand, vec4(0.));
 		demand = min(demand, vec4(1.));
-		// demand = pow(abs(demand), vec4(0.5));
 		demand = min(demand, 1. - res_c);
 		// Set the PULL AREA
-		area = 1.;
-		for(uint i = 0u; i < PULL_RAD; i++) {
-			area += nh_rings_c[i].total;
-		}
+		// float area = 1.;
+		// for(uint i = 0u; i < PULL_RAD; i++) {
+		// 	area += nh_rings_c[i].total;
+		// }
+		float area = ((2 * PULL_RAD + 1) * (2 * PULL_RAD + 1));
 		demand /= area;
 	}
 	if(stage == PUSH_DEMAND) {
@@ -322,8 +304,7 @@ void main() {
 		res_c += sum;
 		res_c = min(vec4(1.), res_c);
 		res_c = max(vec4(0.), res_c);
-		area = ((2 * PULL_RAD + 1) * (2 * PULL_RAD + 1));
-		demand *= area;
+		demand = vec4(0.);
 		total_demand = vec4(0.);
 	}
 
@@ -335,6 +316,9 @@ void main() {
 		res_c[0] = 0.2 * (1.-lmap()) * reseed(u32_upk(v63, 8u, 24u) + 0u, 1.0, 0.4);
 		res_c[1] = 0.2 * lmap() * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
 		res_c[2] = 0.2 * vmap() * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
+		res_c[0] = 0.2 * reseed(u32_upk(v63, 8u, 24u) + 0u, 1.0, 0.4);
+		res_c[1] = 0.2 * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
+		res_c[2] = 0.2 * reseed(u32_upk(v63, 8u, 24u) + 2u, 1.0, 0.4);
 		res_c[3] = 0.; }
 
 	if( cmd == 2u ) {
@@ -344,13 +328,7 @@ void main() {
 		res_c[3] = 1.0; }
 
 	if(mlr.x != 0u) {
-		if (paint_layer == 0) {
-			res_c = place(res_c, vec4(paint_color, 1.), paint_size, mxy); }
-		if (paint_layer == 1 && stage == GET_DEMAND) {
-			vec4 put_demand = min(vec4(paint_color, 1.), 1. - res_c);
-			demand = place(demand, put_demand/area, paint_size, mxy); }
-	}
-			// res_c = mouse(res_c, 38.0);	}
+		res_c = mouse(res_c, 38.0);	}
 	if(mlr.y != 0u) {
 		res_c = mouse(res_c, 38.0);	}
 

@@ -23,13 +23,6 @@ uniform uint stage;
 
 uniform uint v63;
 uniform uint frames;
-
-uniform vec3 paint_color;
-uniform vec3 paint_mask;
-uniform int paint_size;
-uniform int paint_layer;
-uniform bool paint_smooth;
-
 // Define states
 #define GET_DEMAND 0u
 #define PUSH_DEMAND 3u
@@ -41,7 +34,7 @@ uniform bool paint_smooth;
 const uint MAX_RADIUS = 4u;
 const uint PULL_RAD = 4u;
 const uint PUSH_RAD = 0u;
-const float pull_scale = 5.;
+const float pull_scale = 1.;
 const float push_scale = 1.;
 
 //	----    ----    ----    ----    ----    ----    ----    ----
@@ -100,6 +93,7 @@ vec4 get_flow(ivec2 pos_offset, sampler2DArray tx, vec4 local_demand) {
 	vec4 supply = gdv( pos_offset, tx, 0);
 	vec4 total_demand = gdv( pos_offset, tx, 2);
 	vec4 used_supply = min(supply, total_demand);
+	// vec4 used_supply = supply;
 	// used_supply = min(used_supply, vec4(1.));
 	vec4 current_flow;
 	for (uint i = 0u; i < 4; i++) {
@@ -138,6 +132,38 @@ ConvData nbhd( vec2 r, sampler2DArray tx, int layer ) {
 				value += gdv( ivec2(-j, i), tx, layer );
 			} } } 
 	return ConvData(value, total); }
+
+ConvData nbhd2( vec2 r, sampler2DArray tx, int layer, float ratio ) {
+	float	psn = 65536.0;
+	vec4	value = vec4(0);
+	float 	total = 0;
+	vec4 local_demand  = gdv( ivec2( 0, 0), tx, 1) * ratio;
+	// vec4 local_demand  = gdv( ivec2( 0, 0), tx, 1);
+
+	vec2 r2 = ceil(r + vec2(0.5)) - vec2(0.500001);
+	r2 = r2 * r2;
+	for(float j = 0.0; j <= r[0]; j++) {
+		vec2 bound = sqrt(max(vec2(0),r2 - vec2(j*j)));
+		for(float i = floor(bound[1])+1; i <= bound[0]; i++) {
+				total += 4.0;
+				value += get_flow( ivec2( i, j), tx, local_demand );
+				value += get_flow( ivec2( j,-i), tx, local_demand );
+				value += get_flow( ivec2(-i,-j), tx, local_demand );
+				value += get_flow( ivec2(-j, i), tx, local_demand );
+			} } 
+	return ConvData(value, total); }
+
+float ring_size( vec2 r, sampler2DArray tx, int layer ) {
+	float 	total = 0;
+
+	vec2 r2 = ceil(r + vec2(0.5)) - vec2(0.500001);
+	r2 = r2 * r2;
+	for(float j = 0.0; j <= r[0]; j++) {
+		vec2 bound = sqrt(max(vec2(0),r2 - vec2(j*j)));
+		for(float i = floor(bound[1])+1; i <= bound[0]; i++) {
+				total += 4.0;
+			} } 
+	return total; }
 
 vec4 bitring(ConvData[MAX_RADIUS] rings, uint bits, uint of) {
 	vec4 sum = vec4(0.0, 0.0, 0.0, 0.0);
@@ -198,16 +224,6 @@ float reseed(uint seed, float scl, float amp) {
 	return clamp(sqrt((r0 + r1) * r3 * (amp + 1.2)) - r2 * (amp * 1.8 + 0.2), 0.0, 1.0);
 }
 
-vec4 place(vec4 col1, vec4 col2, float sz, vec2 mxy) {
-	mxy *= textureSize(tex, 0).xy;
-	vec2 dxy = (vec2(gl_FragCoord) - mxy) * (vec2(gl_FragCoord) - mxy);
-	float dist = sqrt(dxy[0] + dxy[1]);
-	float lamda = min(dist / sz, 1.);
-	lamda = paint_smooth ? lamda : step(1., lamda);
-	col2 = mix(col1, col2, vec4(paint_mask, 1.));
-	return mix(col2, col1, lamda);
-}
-
 vec4 place(vec4 col, float sz, vec2 mxy, uint s, float off) {
 	mxy *= textureSize(tex, 0).xy;
 	vec2 dxy = (vec2(gl_FragCoord) - mxy) * (vec2(gl_FragCoord) - mxy);
@@ -231,6 +247,9 @@ vec4 mouse(vec4 col, float sz) {
 	return place(col, sz, mxy, mlr.x, 0.0);
 }
 
+float r_func(float size) {
+	return pow(1./size, 0.5);
+}
 
 void main() {
 
@@ -248,9 +267,30 @@ void main() {
 	} else if(stage == PUSH_DEMAND) {
 		nbh = nbhd(vec2(PUSH_RAD, 0), tex, 3);
 	} else if(stage == GET_TOTAL_DEMAND) {
-		nbh = nbhd(vec2(PULL_RAD, 0), tex, 1);
+		// nbh = nbhd(vec2(PULL_RAD, 0), tex, 1);
+		float total_size = 0.;
+		for(uint i = 0u; i < PULL_RAD; i++) {
+			total_size += r_func(ring_size(vec2(i + 1u, i), tex, 0));
+		}
+		for(uint i = 0u; i < PULL_RAD; i++) {
+			float size = r_func(ring_size(vec2(i + 1u, i), tex, 0));
+			// float ratio = 1.;
+			float ratio = size / total_size;
+			nh_rings_c[i] = nbhd(vec2(i + 1u, i), tex, 1);
+			nh_rings_c[i].value *= ratio;
+		}
 	} else if (stage == CALC_FLOW) {
-		nbh = nbhd(vec2(PULL_RAD, 0), tex, 0);
+		float total_size = 0.;
+		for(uint i = 0u; i < PULL_RAD; i++) {
+			total_size += r_func(ring_size(vec2(i + 1u, i), tex, 0));
+		}
+		for(uint i = 0u; i < PULL_RAD; i++) {
+			float size = r_func(ring_size(vec2(i + 1u, i), tex, 0));
+			float ratio = size / total_size;
+			// float ratio = 1.;
+			// ratio *= size / total_size;
+			nh_rings_c[i] = nbhd2(vec2(i + 1u, i), tex, 0, ratio);
+		}
 	}
 
 //	Parameters
@@ -264,7 +304,6 @@ void main() {
 	vec4 total_demand = gdv(ivec2(0, 0), tex, 2);
 	// vec4 push = gdv(ivec2(0, 0), tex, 3);
 
-	float area = 0.;
 	if(stage == GET_DEMAND) {
 		demand = vec4(0);
 		for(uint i = 0u; i < 24u; i++) {
@@ -292,7 +331,7 @@ void main() {
 		// demand = pow(abs(demand), vec4(0.5));
 		demand = min(demand, 1. - res_c);
 		// Set the PULL AREA
-		area = 1.;
+		float area = 1.;
 		for(uint i = 0u; i < PULL_RAD; i++) {
 			area += nh_rings_c[i].total;
 		}
@@ -310,20 +349,24 @@ void main() {
 	}
 	if(stage == GET_TOTAL_DEMAND) {
 		vec4 sum = demand;
-		sum += nbh.value;
+		for(uint i = 0u; i < PULL_RAD; i++) {
+			sum += nh_rings_c[i].value;
+		}
+		// sum += nbh.value;
 		total_demand = sum;
 	}
 	if(stage == CALC_FLOW) {
 		vec4 local_demand = gdv(ivec2(0, 0), tex, 1);
 		vec4 sum = get_flow(ivec2(0, 0), tex, local_demand);
-		sum += nbh.value;
+		for(uint i = 0u; i < PULL_RAD; i++) {
+			sum += nh_rings_c[i].value;
+		}
 
 		res_c -= min(res_c, total_demand);
 		res_c += sum;
 		res_c = min(vec4(1.), res_c);
 		res_c = max(vec4(0.), res_c);
-		area = ((2 * PULL_RAD + 1) * (2 * PULL_RAD + 1));
-		demand *= area;
+		demand = vec4(0.);
 		total_demand = vec4(0.);
 	}
 
@@ -332,9 +375,12 @@ void main() {
 //	----    ----    ----    ----    ----    ----    ----    ----
 
 	if(frames <= 0u || cmd == 1u) {
-		res_c[0] = 0.2 * (1.-lmap()) * reseed(u32_upk(v63, 8u, 24u) + 0u, 1.0, 0.4);
-		res_c[1] = 0.2 * lmap() * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
-		res_c[2] = 0.2 * vmap() * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
+		res_c[0] = 0.15 * (1.-lmap()) * reseed(u32_upk(v63, 8u, 24u) + 0u, 1.0, 0.4);
+		res_c[1] = 0.15 * lmap() * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
+		res_c[2] = 0.15 * vmap() * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
+		// res_c[0] = 0.2 * 0.01 * reseed(u32_upk(v63, 8u, 24u) + 0u, 1.0, 0.4);
+		// res_c[1] = 0.2 * 0.5 * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
+		// res_c[2] = 0.2 * 0.5 * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
 		res_c[3] = 0.; }
 
 	if( cmd == 2u ) {
@@ -344,13 +390,7 @@ void main() {
 		res_c[3] = 1.0; }
 
 	if(mlr.x != 0u) {
-		if (paint_layer == 0) {
-			res_c = place(res_c, vec4(paint_color, 1.), paint_size, mxy); }
-		if (paint_layer == 1 && stage == GET_DEMAND) {
-			vec4 put_demand = min(vec4(paint_color, 1.), 1. - res_c);
-			demand = place(demand, put_demand/area, paint_size, mxy); }
-	}
-			// res_c = mouse(res_c, 38.0);	}
+		res_c = mouse(res_c, 38.0);	}
 	if(mlr.y != 0u) {
 		res_c = mouse(res_c, 38.0);	}
 

@@ -23,13 +23,19 @@ void WindowControl::draw_video_window()
     if (ImGui::Button("Reset"))
     {
         _video_frame = 0;
+        std::filesystem::remove_all("../out/");
     }
     ImGui::Text("Captured frames: %d", _video_frame);
     ImGui::InputText("Video name", &_video_name);
+    ImGui::InputInt("Output fps", &_output_fps);
     if (ImGui::Button("Save frames"))
     {
         std::filesystem::create_directory("../vid");
-        std::string command = "ffmpeg -loglevel 4 -framerate 60 -y -i ../out/frame_%00d.PAM -c:v libx264 -crf 12 -movflags +faststart -vf 'eq=gamma_r=1.26:gamma_g=1.19:gamma_b=1.08' -pix_fmt yuv420p ";
+        std::string command = "";
+        command += "ffmpeg -loglevel 4 "; 
+        command += "-framerate " + std::to_string(_output_fps) + " ";
+        command += "-y -i ../out/frame_%000d.PAM -c:v libx264 -crf 12 -movflags +faststart -pix_fmt yuv420p ";
+        // std::string command = "ffmpeg -loglevel 4 -framerate 30 -y -i ../out/frame_%00d.PAM -c:v libx264 -crf 12 -movflags +faststart -vf 'scale=iw/2:ih/2:flags=bicubic' -pix_fmt yuv420p ";
         command += "../vid/" + _video_name + ".mp4";
         std::system(command.c_str());
     }
