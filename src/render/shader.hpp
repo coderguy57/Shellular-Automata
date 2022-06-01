@@ -13,16 +13,17 @@
 class Shader
 {
 private:
-    void compile(GLuint type);
-    void print_status(void);
+    bool compile(GLuint type);
     std::string _buffer;
     GLuint _id;
+    bool _success = false;
 
 public:
     Shader(const std::string &path, GLuint type);
     virtual ~Shader();
 
-    GLuint get_id(void) const;
+    inline GLuint get_id() const { return _id; };
+    inline bool is_success() const { return _success; };
 };
 
 class VertexShader : public Shader
@@ -69,11 +70,13 @@ class FragmentProgram : public Program
 {
     VertexShader *_v_shader;
     FragmentShader *_f_shader;
+    bool _success = false;
 
 public:
     FragmentProgram(const std::string &vertex, const std::string &fragment);
     ~FragmentProgram();
     void use() const;
+    inline bool is_success() const { return _success; };
 };
 
 class ComputeProgram : public Program
