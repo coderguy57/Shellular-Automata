@@ -84,13 +84,13 @@ float hmp2(float x, float w) {
 
 vec4 gdv(ivec2 of, sampler2DArray tx, int layer) {
 	of = ivec2(gl_FragCoord) + of;
-	of[0] = (of[0] + textureSize(tx, 0)[0]) & (textureSize(tx, 0)[0] - 1);
-	of[1] = (of[1] + textureSize(tx, 0)[1]) & (textureSize(tx, 0)[1] - 1);
+	of = ivec2(mod(of, textureSize(tx, 0).xy));
 	return texelFetch(tx, ivec3(of, layer), 0);
 }
 
 vec4 get_flow(ivec2 pos_offset, sampler2DArray tx, vec4 local_demand) {
 	vec4 supply = gdv( pos_offset, tx, 0);
+	supply.rgb = supply.gbr;
 	vec4 total_demand = gdv( pos_offset, tx, 2);
 	vec4 used_supply = min(supply, total_demand);
 	// vec4 used_supply = supply;
@@ -362,7 +362,7 @@ void main() {
 			sum += nh_rings_c[i].value;
 		}
 
-		res_c -= min(res_c, total_demand);
+		res_c.gbra -= min(res_c.gbra, total_demand);
 		res_c += sum;
 		res_c = min(vec4(1.), res_c);
 		res_c = max(vec4(0.), res_c);

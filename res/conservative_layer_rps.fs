@@ -38,10 +38,10 @@ uniform bool paint_smooth;
 
 //	----    ----    ----    ----    ----    ----    ----    ----
 
-const uint MAX_RADIUS = 4u;
+const uint MAX_RADIUS = 7u;
 const uint PULL_RAD = 4u;
 const uint PUSH_RAD = 0u;
-const float pull_scale = 5.;
+const float pull_scale = 0.5;
 const float push_scale = 1.;
 
 //	----    ----    ----    ----    ----    ----    ----    ----
@@ -97,6 +97,7 @@ vec4 gdv(ivec2 of, sampler2DArray tx, int layer) {
 
 vec4 get_flow(ivec2 pos_offset, sampler2DArray tx, vec4 local_demand) {
 	vec4 supply = gdv( pos_offset, tx, 0);
+	supply.rgb = supply.gbr;
 	vec4 total_demand = gdv( pos_offset, tx, 2);
 	vec4 used_supply = min(supply, total_demand);
 	// used_supply = min(used_supply, vec4(1.));
@@ -317,7 +318,7 @@ void main() {
 		vec4 sum = get_flow(ivec2(0, 0), tex, local_demand);
 		sum += nbh.value;
 
-		res_c -= min(res_c, total_demand);
+		res_c.gbra -= min(res_c.gbra, total_demand);
 		res_c += sum;
 		res_c = min(vec4(1.), res_c);
 		res_c = max(vec4(0.), res_c);
@@ -349,8 +350,9 @@ void main() {
 			vec4 put_demand = min(vec4(paint_color, 1.), 1. - res_c);
 			demand = place(demand, put_demand/area, paint_size, mxy); }
 	}
+			// res_c = mouse(res_c, 38.0);	}
 	if(mlr.y != 0u) {
-		res_c = mouse(res_c, paint_size);	}
+		res_c = mouse(res_c, 38.0);	}
 
 	//	Force alpha to 1.0
 	res_c[3] = 1.0;

@@ -16,7 +16,7 @@ void PaintControl::draw_options()
     ImGui::Begin("Paint controls", &_show_options,
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
     // ImGui::SetNextItemWidth(112);
-    ImGui::SliderInt("Size", &_cursor_size, 0, 256);
+    ImGui::SliderInt("Size", &_cursor_size, 1, 128);
     ImGui::Checkbox("Smooth", &_cursor_smooth);
     ImGui::SliderInt("Layer", &_layer, 0, 3);
 

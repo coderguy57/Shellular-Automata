@@ -109,8 +109,7 @@ float hmp2(float x, float w) {
 
 float[8] gdv(ivec2 of, sampler2DArray tx) {
 	of = ivec2(gl_FragCoord) + of;
-	of[0] = (of[0] + textureSize(tx, 0)[0]) & (textureSize(tx, 0)[0] - 1);
-	of[1] = (of[1] + textureSize(tx, 0)[1]) & (textureSize(tx, 0)[1] - 1);
+	of = ivec2(mod(of, textureSize(tx, 0).xy));
 	float pixels[8];
 	for(int i = 0; i < 8; i++) {
 		ivec3 coord = ivec3(of.x, of.y, i / 4);

@@ -1,4 +1,4 @@
-#include "glsl_transiler.hpp"
+#include "glsl_transpiler.hpp"
 
 using namespace GLSL;
 //
@@ -56,11 +56,11 @@ void Context::lexer() {
             // Single-line comments
             while (it != buffer.end() && (*it != '\n'))
                 it++;
-        } else if ((*(it + 0) == '/' && *(it + 1) == '*')) {
+        } else if (*(it + 0) == '/' && *(it + 1) == '*') {
             it += 2;
             // Multiline comments
             while ((it + 1) != buffer.end()) {
-                if (*(it + 0) == '*' || *(it + 1) == '/') {
+                if (*(it + 0) == '*' && *(it + 1) == '/') {
                     it += 2;
                     break;
                 } else if (*it == '\n') {
@@ -196,59 +196,6 @@ void Context::lexer() {
 }
 
 void Context::parser() {
-    Function fn;
-
-    fn = Function();
-    fn.name = "vec2";
-    fn.ret_type = "vec2";
-    fn.args.push_back(std::make_pair("float", "x"));
-    fn.args.push_back(std::make_pair("float", "y"));
-    funcs.push_back(fn);
-
-    fn = Function();
-    fn.name = "vec3";
-    fn.ret_type = "vec3";
-    fn.args.push_back(std::make_pair("float", "x"));
-    fn.args.push_back(std::make_pair("float", "y"));
-    fn.args.push_back(std::make_pair("float", "z"));
-    funcs.push_back(fn);
-
-    fn = Function();
-    fn.name = "vec4";
-    fn.ret_type = "vec4";
-    fn.args.push_back(std::make_pair("float", "x"));
-    fn.args.push_back(std::make_pair("float", "y"));
-    fn.args.push_back(std::make_pair("float", "z"));
-    fn.args.push_back(std::make_pair("float", "w"));
-    funcs.push_back(fn);
-
-    // Register all the overloads for this function
-    std::vector<std::string> mix_strings = {"vec2", "vec3", "vec4", "sampler2D"};
-    for (std::vector<std::string>::const_iterator it1 = mix_strings.begin(); it1 != mix_strings.end(); it1++) {
-        for (std::vector<std::string>::const_iterator it2 = mix_strings.begin(); it2 != mix_strings.end(); it2++) {
-            fn = Function();
-            fn.name = "mix";
-            fn.ret_type = "vec4";
-            fn.args.push_back(std::make_pair(*it1, "x"));
-            fn.args.push_back(std::make_pair(*it2, "y"));
-            fn.args.push_back(std::make_pair("float", "z"));
-            funcs.push_back(fn);
-        }
-    }
-
-    fn = Function();
-    fn.name = "clamp";
-    fn.ret_type = "float";
-    fn.args.push_back(std::make_pair("float", "num"));
-    fn.args.push_back(std::make_pair("float", "min"));
-    fn.args.push_back(std::make_pair("float", "max"));
-    funcs.push_back(fn);
-
-    std::vector<Token>::iterator it;
-    for (it = tokens.begin(); it != tokens.end(); it++) {
-        if (it->type == TokenType::ASSIGN) {
-        }
-    }
 }
 
 std::string Context::to_text() {

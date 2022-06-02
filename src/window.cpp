@@ -9,6 +9,7 @@
 
 #include "engine.hpp"
 #include "controllers/window_control.hpp"
+#include "controllers/engine_control.hpp"
 #include "controllers/gui_control.hpp"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -75,6 +76,9 @@ void Window::run(Engine *engine, std::vector<GuiControl *> guis)
 
     // Our state
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+    EngineControl *engine_controller = new EngineControl(engine);
+    guis.insert(guis.begin(), engine_controller);
 
     WindowControl *window_controller = new WindowControl;
     guis.insert(guis.begin(), window_controller);

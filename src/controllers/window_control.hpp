@@ -27,16 +27,17 @@ public:
 
 private:
     void draw_video_window();
+
     bool _paused = false;
     bool _quit = false;
     bool _step = false;
 
-    bool _show_video_window;
+    bool _show_video_window = false;
     bool _do_save;
     int _video_frame;
     int _output_fps = 20;
     int _capture_frequence = 10;
-    int _capture_wait;
+    int _capture_wait = 0;
     std::string _video_name;
     std::vector<Texture *> _frames_to_save;
     std::vector<TextureSave *> _texture_saver;

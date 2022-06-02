@@ -87,6 +87,7 @@ void WindowControl::draw()
 
         ImGui::EndMainMenuBar();
     }
+
     if (_show_video_window)
     {
         draw_video_window();
@@ -97,7 +98,7 @@ void WindowControl::post_process(Texture *texture)
 {
     if (_do_save && !_paused)
     {
-        if (_capture_wait-- == 0)
+        if (_capture_wait-- <= 0)
         {
             _capture_wait = _capture_frequence;
 
