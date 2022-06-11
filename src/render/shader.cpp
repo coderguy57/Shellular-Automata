@@ -1,11 +1,13 @@
 #include "shader.hpp"
-#include "glsl_transpiler.hpp"
 
 #include <fstream>
 #include <iostream>
 #include <sstream>
 
-Shader::Shader(const std::string &path, GLuint type) {
+#include "glsl_transpiler.hpp"
+
+Shader::Shader(const std::string &path, GLuint type)
+    : _type{type} {
     std::ifstream file;
     file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     try {
@@ -16,32 +18,40 @@ Shader::Shader(const std::string &path, GLuint type) {
         file.close();
 
         _buffer = stream.str();
-        _success = compile(type);
+        ctx = new GLSL::Context(_buffer);
+        ctx->lexer();
+        try {
+            ctx->parser();
+        } catch (GLSL::Exception &e) {
+            print_error("%s", (e.it->data + " -> " + e.what()).c_str());
+            _success = false;
+        }
+        if (_success)
+            _success = compile(type);
     } catch (std::ifstream::failure &e) {
         print_error("Cannot load shader %s", path.c_str());
+        _success = false;
     }
 }
 
 Shader::~Shader() {
     glDeleteShader(_id);
+    delete ctx;
+}
+
+std::vector<GLSL::IOption *> Shader::get_options() const {
+    return ctx->options;
 }
 
 ComputeShader::ComputeShader(const std::string &path) : Shader(path, GL_COMPUTE_SHADER) {
 }
 
 bool Shader::compile(GLuint type) {
-    GLSL::Context ctx(_buffer);
-    // ctx.defines = defintions;
-    ctx.lexer();
-    try {
-        ctx.parser();
-    } catch (GLSL::Exception &e) {
-        print_error("%s", e.it->data + " -> " + e.what());
-        return false;
-    }
-    _buffer = ctx.to_text();
-    auto line_numbers = ctx.line_numbers;
+    _buffer = ctx->to_text();
+    auto line_numbers = ctx->line_numbers;
 
+    if (_id)
+        glDeleteShader(_id);
     _id = glCreateShader(type);
     if (!_id)
         throw std::runtime_error("Can't create shader");
@@ -94,7 +104,8 @@ bool Shader::compile(GLuint type) {
             if (row > 0 && row - 1 < line_numbers.size()) {
                 row = line_numbers[row - 1];
             }
-            output_error << "(" << row << ")" << ":" << error_code << "\n^^^: " << error << "\n";
+            output_error << "(" << row << ")"
+                         << ":" << error_code << "\n^^^: " << error << "\n";
             getline(error_lines, error);
         }
         print_error("%s", output_error.str().c_str());
@@ -173,7 +184,38 @@ FragmentProgram::~FragmentProgram() {
 }
 
 void FragmentProgram::use() const {
+    for (auto option : _f_shader->get_options()) {
+        if (option->changed) {
+            glDetachShader(_id, _f_shader->get_id());
+            _f_shader->recompile();
+            glAttachShader(_id, _f_shader->get_id());
+            glLinkProgram(_id);
+            break;
+        }
+    }
+    for (auto option : _f_shader->get_options()) {
+        option->changed = false;
+    }
     glUseProgram(_id);
+    for (auto option : _f_shader->get_options()) {
+        if (option->type == GLSL::IOption::Type::Float) {
+            auto opt = static_cast<GLSL::ValueOption<float>*>(option);
+            set_uniform(opt->name, opt->value);
+        } else if (option->type == GLSL::IOption::Type::Int) {
+            auto opt = static_cast<GLSL::ValueOption<float>*>(option);
+            set_uniform(opt->name, opt->value);
+        } else if (option->type == GLSL::IOption::Type::UInt) {
+            auto opt = static_cast<GLSL::ValueOption<float>*>(option);
+            set_uniform(opt->name, opt->value);
+        } else if (option->type == GLSL::IOption::Type::Bool) {
+            auto opt = static_cast<GLSL::ValueOption<float>*>(option);
+            set_uniform(opt->name, opt->value);
+        } else if (option->type == GLSL::IOption::Type::Command) {
+            auto opt = static_cast<GLSL::ValueOption<float>*>(option);
+            set_uniform(opt->name, opt->value);
+            opt->value = false;
+        }
+    }
 }
 
 Program::~Program() {

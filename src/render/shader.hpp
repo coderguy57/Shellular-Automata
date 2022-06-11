@@ -10,20 +10,29 @@
 #include "../print.hpp"
 #include "texture.hpp"
 
+namespace GLSL {
+    class Context;
+    class IOption;
+}
+
 class Shader
 {
 private:
     bool compile(GLuint type);
     std::string _buffer;
     GLuint _id;
-    bool _success = false;
+    GLuint _type;
+    bool _success = true;
+    GLSL::Context* ctx = nullptr;
 
 public:
     Shader(const std::string &path, GLuint type);
     virtual ~Shader();
 
     inline GLuint get_id() const { return _id; };
+    inline void recompile() { _success = compile(_type); };
     inline bool is_success() const { return _success; };
+    std::vector<GLSL::IOption*> get_options() const;
 };
 
 class VertexShader : public Shader
@@ -50,7 +59,7 @@ protected:
     GLuint _id;
 
 public:
-    Program() {};
+    Program(){};
     ~Program();
     void set_uniform(const std::string &name, glm::mat4 uniform) const;
     void set_uniform(const std::string &name, float value) const;
@@ -76,7 +85,9 @@ public:
     FragmentProgram(const std::string &vertex, const std::string &fragment);
     ~FragmentProgram();
     void use() const;
+
     inline bool is_success() const { return _success; };
+    inline std::vector<GLSL::IOption*> get_options() const { return _f_shader->get_options(); };
 };
 
 class ComputeProgram : public Program

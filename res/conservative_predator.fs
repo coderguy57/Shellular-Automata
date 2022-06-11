@@ -30,6 +30,26 @@ uniform int paint_size;
 uniform int paint_layer;
 uniform bool paint_smooth;
 
+// #option use_demand range
+// #option min_col_to_eat range
+// #option eat_rate range
+// #option min_food_to_survive range
+// #option death_rate range
+
+//! option (0, 1) = 1
+uniform float use_demand;
+//! option (0, 1) = 1
+uniform float min_col_to_eat;
+//! option (0, 1) = 1
+uniform float eat_rate;
+//! option (0, 1) = 1
+uniform float min_food_to_survive;
+//! option (0, 1) = 1
+uniform float death_rate;
+
+//! option (command)
+uniform bool test;
+
 // Define states
 #define GET_DEMAND 0u
 #define PUSH_DEMAND 3u
@@ -38,8 +58,9 @@ uniform bool paint_smooth;
 
 //	----    ----    ----    ----    ----    ----    ----    ----
 
+//! option (2, 16)
 const uint MAX_RADIUS = 12u;
-const uint PULL_RAD = 12u;
+const uint PULL_RAD = min(MAX_RADIUS, 12u);
 const uint PUSH_RAD = 0u;
 const float pull_scale = 5.;
 const float push_scale = 1.;
@@ -341,16 +362,17 @@ void main() {
 		float area = ((2 * PULL_RAD + 1) * (2 * PULL_RAD + 1));
 		vec3 left = 1. - res_c.rgb;
 		vec3 food = res_c.gbr;
-		food *= 0.02;
-		food *= demand.rgb * area;
+		// food *= 0.02;
+		food *= eat_rate;
+		food *= mix(vec3(1.), demand.rgb * area, use_demand);
 		food = min(food, left);
-		vec3 eat = step(0.01, res_c.rgb);
+		vec3 eat = step(min_col_to_eat, res_c.rgb);
 		res_c.rgb += eat * food;
 		res_c.gbr -= eat * food;
 
 		vec3 food_left = 1. - res_c.brg;
-		vec3 die = eat * (1. - step(0.001, food));
-		die *= 0.001;
+		vec3 die = eat * (1. - step(min_food_to_survive, food));
+		die *= death_rate;
 		die = min(die, food_left);
 		res_c.rgb -= die;
 		res_c.brg += die;

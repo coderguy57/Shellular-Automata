@@ -5,6 +5,7 @@
 #include "imgui_stdlib.h"
 #include "render/texture.hpp"
 #include "render/shader.hpp"
+#include "render/glsl_transpiler.hpp"
 
 EngineControl::EngineControl(Engine *engine) : _engine{engine}
 {
@@ -39,18 +40,53 @@ void EngineControl::draw_change_shader()
     std::vector<std::string> shaders_names;
     for (auto const &dir_entry : std::filesystem::directory_iterator(path))
     {
-        if (dir_entry.is_regular_file()) {
+        if (dir_entry.is_regular_file())
+        {
             const auto file_path = dir_entry.path();
-            if (file_path.extension() == ".fs") {
+            if (file_path.extension() == ".fs")
+            {
                 shaders_names.push_back(file_path.filename());
             }
         }
     }
 
-    for (auto const &shader_name : shaders_names) {
-        if (ImGui::Button(shader_name.c_str())) {
+    for (auto const &shader_name : shaders_names)
+    {
+        if (ImGui::Button(shader_name.c_str()))
+        {
             std::filesystem::path path("../res/" + shader_name);
             _engine->change_shader(path);
+        }
+    }
+
+    ImGui::End();
+}
+
+void EngineControl::draw_shader_options()
+{
+    ImGui::Begin("Shader options", &_show_shader_options,
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
+
+    FragmentProgram *program = _engine->program;
+
+    for (GLSL::IOption* option : program->get_options())
+    {
+        if (option->type == GLSL::IOption::Type::Float) {
+            auto opt = static_cast<GLSL::ValueOption<float>*>(option);
+            opt->changed |= ImGui::SliderFloat(opt->label.c_str(), &opt->value, opt->min, opt->max);
+        } else if (option->type == GLSL::IOption::Type::Int) {
+            auto opt = static_cast<GLSL::ValueOption<int>*>(option);
+            opt->changed |= ImGui::SliderInt(opt->label.c_str(), &opt->value, opt->min, opt->max);
+        } else if (option->type == GLSL::IOption::Type::UInt) {
+            auto opt = static_cast<GLSL::ValueOption<u_int>*>(option);
+            opt->changed |= ImGui::SliderScalar(opt->label.c_str(), ImGuiDataType_U32, &opt->value, &opt->min, &opt->max);
+        } else if (option->type == GLSL::IOption::Type::Bool) {
+            auto opt = static_cast<GLSL::BoolOption*>(option);
+            opt->changed |= ImGui::Checkbox(opt->label.c_str(), &opt->value);
+        } else if (option->type == GLSL::IOption::Type::Command) {
+            auto opt = static_cast<GLSL::CommandOption*>(option);
+            if (ImGui::Button(opt->label.c_str()))
+                opt->activate();
         }
     }
 
@@ -77,6 +113,18 @@ void EngineControl::draw()
             {
                 _show_change_shader = !_show_change_shader;
             }
+            if (_engine->program->get_options().size() > 0)
+            {
+                ImGui::Separator();
+                if (ImGui::MenuItem("Shader options", ""))
+                {
+                    _show_shader_options = !_show_shader_options;
+                }
+            }
+            else
+            {
+                _show_shader_options = false;
+            }
             ImGui::EndMenu();
         }
         ImGui::Separator();
@@ -91,6 +139,10 @@ void EngineControl::draw()
     if (_show_change_shader)
     {
         draw_change_shader();
+    }
+    if (_show_shader_options)
+    {
+        draw_shader_options();
     }
 }
 

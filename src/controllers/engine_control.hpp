@@ -20,6 +20,7 @@ public:
 private:
     void draw_change_size();
     void draw_change_shader();
+    void draw_shader_options();
 
     Engine* _engine;
 
@@ -30,4 +31,6 @@ private:
     int _engine_height;
 
     bool _show_change_shader = false;
+
+    bool _show_shader_options = false;
 };
