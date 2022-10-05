@@ -20,7 +20,7 @@ class Shader
 private:
     bool compile(GLuint type);
     std::string _buffer;
-    GLuint _id;
+    GLuint _id = 0;
     GLuint _type;
     bool _success = true;
     GLSL::Context* ctx = nullptr;
@@ -56,7 +56,7 @@ public:
 class Program
 {
 protected:
-    GLuint _id;
+    GLuint _id = 0;
 
 public:
     Program(){};
@@ -104,7 +104,7 @@ public:
 template <typename T>
 class Buffer
 {
-    GLuint _id;
+    GLuint _id = 0;
     size_t _size;
 
 public:

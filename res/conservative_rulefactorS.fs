@@ -21,7 +21,7 @@ uniform float zoom;
 uniform float scale;
 uniform uint stage;
 
-uniform uint v63;
+uniform uint rand_seed;
 uniform uint frames;
 
 uniform vec3 paint_color;
@@ -30,33 +30,35 @@ uniform int paint_size;
 uniform int paint_layer;
 uniform bool paint_smooth;
 
-// #option use_demand range
-// #option min_col_to_eat range
-// #option eat_rate range
-// #option min_food_to_survive range
-// #option death_rate range
-
-//! option (0, 1) = 1
-uniform float use_demand;
-//! option (0, 1) = 1
-uniform float min_col_to_eat;
-//! option (0, 1) = 1
-uniform float eat_rate;
-//! option (0, 1) = 1
-uniform float min_food_to_survive;
-//! option (0, 1) = 1
-uniform float death_rate;
-
 // Define states
 #define GET_DEMAND 0u
 #define PUSH_DEMAND 3u
 #define GET_TOTAL_DEMAND 1u
 #define CALC_FLOW 2u
 
+//! option "Negative factor" exp (0, 5)
+uniform float test_factor = 0;
+//! option "Overlap" exp (-1, 1)
+uniform float overlap = 0;
+
+//! option "Sharp corners"
+const bool sharp = true;
+//! option "Smooth corner factor 1" exp (0.1, 100)
+uniform float exp_factor = 1;
+//! option "Smooth corner factor 2" exp (0.1, 200)
+uniform float exp_factor_2 = 1;
+
+//! option "MNCAS STEPS" (0, 6)
+const uint MNCAS_INDEX = 3;
+const uint[7] MNCA_SELECTIVE = uint[7](1,2,3,4,6,12,24);
+const uint MNCAS_STEPS = MNCA_SELECTIVE[MNCAS_INDEX];
+
+
 //	----    ----    ----    ----    ----    ----    ----    ----
+//! texture_format GL_RGBA32F
 
 //! option "Max radius" (2, 16)
-const uint MAX_RADIUS = 12u;
+const uint MAX_RADIUS = 4u;
 //! option "Pull radius" (1, 16)
 const uint PULL_RAD_IN = 4u;
 const uint PULL_RAD = min(MAX_RADIUS, PULL_RAD_IN);
@@ -250,6 +252,24 @@ vec4 mouse(vec4 col, float sz) {
 	return place(col, sz, mxy, mlr.x, 0.0);
 }
 
+float edge(float left, float right, float x) {
+	float middle = 0.5 * (left + right);
+	left = mix(left, middle, overlap);
+	right = mix(right, middle, overlap);
+	float val = abs(x - 0.5 * (right + left)) / (0.5 * (right - left));
+	float factor;
+	if (sharp)
+		factor = val <= 1 ? 1 : 0;
+	else
+		factor = exp(- exp_factor * pow(abs(val), exp_factor_2));
+	factor += test_factor * (factor - 1);
+	factor *= step(left, right);
+
+	// factor = max(0., 1 - val); // V shape
+	// float factor = max(-exp_factor, 1 - val);
+	// float factor = exp( - 2 * val * val);
+	return factor;
+}
 
 void main() {
 
@@ -287,35 +307,47 @@ void main() {
 	if(stage == GET_DEMAND) {
 		demand = vec4(0);
 		vec4 z = vec4(0);
-		vec4[12] smnca_res = vec4[12](z,z,z,z,z,z,z,z,z,z,z,z);
+		vec4[24/MNCAS_STEPS] smnca_res;
+		for(uint i = 0u; i < 24/MNCAS_STEPS; i++)
+			smnca_res[i] = z;
+
 		for(uint i = 0u; i < 24u; i++) {
-			uint chi = u32_upk(ch2[i / 8u], 2u, (i * 4u + 0u) & 31u);
-			chi = chi % 3;
 			uint cho = u32_upk(ch[i / 8u], 2u, (i * 4u + 0u) & 31u);
 			cho = cho % 3;
+			uint chi = u32_upk(ch2[i / 8u], 2u, (i * 4u + 0u) & 31u);
+			chi = chi % 3;
 			uint chm = u32_upk(ch3[i / 8u], 2u, (i * 4u + 0u) & 31u);
 			chm = chm % 3;
 
 			float nhv = bitring(nh_rings_c, nb[i / 2u], (i & 1u) * 16u)[cho];
 
-			if(nhv >= utp(ur[i], 8u, 0u) && nhv <= utp(ur[i], 8u, 1u)) {
-				float h = hmp2(res_c[chm], 1.2);
-				smnca_res[i/4u][chi] += bsn(us[i / 16u], ((i * 2u + 0u) & 31u)) * s * h;
-				// demand[chi] += bsn(us[i / 16u], ((i * 2u + 0u) & 31u)) * s * h;
-			}
-			if(nhv >= utp(ur[i], 8u, 2u) && nhv <= utp(ur[i], 8u, 3u)) {
-				float h = hmp2(res_c[chm], 1.2);
-				smnca_res[i/4u][chi] += bsn(us[i / 16u], ((i * 2u + 1u) & 31u)) * s * h;
-				// demand[chi] += bsn(us[i / 16u], ((i * 2u + 1u) & 31u)) * s * h;
-			}
-		}
+			float rulefactor = 1;
+			rulefactor = edge(utp(ur[i], 8u, 0u), utp(ur[i], 8u, 1u), nhv);
+			float h = hmp2(res_c[chm], 1.2);
+			smnca_res[i/MNCAS_STEPS][chi] += bsn(us[i / 16u], ((i * 2u + 0u) & 31u)) * h * s * rulefactor;
 
-		for(uint i = 0u; i < 6u; i++) {
-			demand = max(demand, abs(smnca_res[i])); }
-		
+			rulefactor = edge(utp(ur[i], 8u, 2u), utp(ur[i], 8u, 3u), nhv);
+			smnca_res[i/MNCAS_STEPS][chi] += bsn(us[i / 16u], ((i * 2u + 1u) & 31u)) * h * s * rulefactor;
+		}
+		uvec4 dev_idx = uvec4(0u,0u,0u,0u);
+		vec4 dev = vec4(0.0,0.0,0.0,0.0);
+		for(uint i = 0u; i < 24/MNCAS_STEPS; i++) {
+			vec4 smnca_res_temp = smnca_res[i];
+			if(smnca_res_temp[0] > dev[0]) { dev_idx[0] = i; dev[0] = smnca_res_temp[0]; }
+			if(smnca_res_temp[1] > dev[1]) { dev_idx[1] = i; dev[1] = smnca_res_temp[1]; }
+			if(smnca_res_temp[2] > dev[2]) { dev_idx[2] = i; dev[2] = smnca_res_temp[2]; }
+			if(smnca_res_temp[3] > dev[3]) { dev_idx[3] = i; dev[3] = smnca_res_temp[3]; } }
+		demand = dev;
+
+		// vec4 n4 = sigm(demand, 0.5) * n * 64.0 + n;
+		// demand = demand - n4;
+		// vec4 n4 = sigm(demand, 0.5) * n * 64.0 + n;
+		// demand = step(temp, demand);
+
 		demand *= pull_scale;
 		demand = max(demand, vec4(0.));
 		demand = min(demand, vec4(1.));
+		// demand = pow(abs(demand), vec4(0.5));
 		demand = min(demand, 1. - res_c);
 		// Set the PULL AREA
 		area = 1.;
@@ -323,11 +355,6 @@ void main() {
 			area += nh_rings_c[i].total;
 		}
 		demand /= area;
-
-		// demand = floor(demand * 256. * 64.) / (256. * 64.);
-
-
-		// res_c.b = mix(demand.r * area, res_c.b, 0.998);
 	}
 	if(stage == PUSH_DEMAND) {
 		// float area = ((2 * PULL_RAD + 1) * (2 * PULL_RAD + 1));
@@ -353,48 +380,9 @@ void main() {
 		res_c += sum;
 		res_c = min(vec4(1.), res_c);
 		res_c = max(vec4(0.), res_c);
-		// res_c.g = 0.;
-		// res_c.b -= 0.005 * (1. - res_c.r);
-		// demand = vec4(0.);
+		area = ((2 * PULL_RAD + 1) * (2 * PULL_RAD + 1));
+		demand *= area;
 		total_demand = vec4(0.);
-
-		float area = ((2 * PULL_RAD + 1) * (2 * PULL_RAD + 1));
-		vec3 left = 1. - res_c.rgb;
-		vec3 food = res_c.gbr;
-		// food *= 0.02;
-		food *= eat_rate;
-		food *= mix(vec3(1.), demand.rgb * area, use_demand);
-		food = min(food, left);
-		vec3 eat = step(min_col_to_eat, res_c.rgb);
-		res_c.rgb += eat * food;
-		res_c.gbr -= eat * food;
-
-		vec3 food_left = 1. - res_c.brg;
-		vec3 die = eat * (1. - step(min_food_to_survive, food));
-		die *= death_rate;
-		die = min(die, food_left);
-		res_c.rgb -= die;
-		res_c.brg += die;
-
-
-		// res_c.r = min(res_c.r, 1.);
-
-		// float left = 1. - res_c.r;
-		// // float food = min(left, res_c.g);
-		// float food = res_c.g;
-		// food *= 0.002;
-		// float eat = step(0.01, res_c.r);
-		// res_c.r += eat * food;
-		// res_c.g -= eat * food * 0.5;
-		// res_c.r = min(res_c.r, 1.);
-
-		// res_c.r *= 0.9995;
-		// res_c.r -= 0.0001;
-		// res_c.g = max(res_c.g, 0.);
-		// // res_c.g += 0.001 * (1. - res_c.r);
-		// // res_c.g += 0.001 * (1. - res_c.r);
-		// res_c.g += 0.0001 * (1. - step(0.1, res_c.r));
-		// res_c.g = min(res_c.g, 1.);
 	}
 
 //	----    ----    ----    ----    ----    ----    ----    ----
@@ -402,9 +390,9 @@ void main() {
 //	----    ----    ----    ----    ----    ----    ----    ----
 
 	if(frames <= 0u || cmd == 1u) {
-		res_c[0] = 0.2 * (1.-lmap()) * reseed(u32_upk(v63, 8u, 24u) + 0u, 1.0, 0.4);
-		res_c[1] = 0.2 * lmap() * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
-		res_c[2] = 0.2 * vmap() * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
+		res_c[0] = 0.2 * (1.-lmap()) * reseed(rand_seed, 1.0, 0.4);
+		res_c[1] = 0.2 * lmap() * reseed(rand_seed + 1u, 1.0, 0.4);
+		res_c[2] = 0.2 * vmap() * reseed(rand_seed + 2u, 1.0, 0.4);
 		res_c[3] = 0.; }
 
 	if( cmd == 2u ) {
@@ -424,7 +412,7 @@ void main() {
 		res_c = mouse(res_c, paint_size);	}
 
 	//	Force alpha to 1.0
-	// res_c[3] = 1.0;
+	res_c[3] = 1.0;
 
 	out_col1 = res_c;
 	out_col2 = demand;

@@ -109,6 +109,7 @@ bool Shader::compile(GLuint type) {
             getline(error_lines, error);
         }
         print_error("%s", output_error.str().c_str());
+        // print_error("%s", _buffer.c_str());
         return false;
     } else {
         print_info("Status: Sucess");

@@ -1,5 +1,7 @@
 #include "mutation_control.hpp"
 
+#include <time.h>
+
 #include "imgui.h"
 #include "render/shader.hpp"
 
@@ -10,6 +12,7 @@ uint32_t u32_upk(uint32_t u32, uint32_t bts, uint32_t off)
 
 MutationControl::MutationControl()
 {
+    _seed = time(NULL);
     for (size_t i = 0; i < 64; i++)
     {
         _mutation.push_back(0);
@@ -451,8 +454,10 @@ void MutationControl::update(Program *program)
     program->set_uniform("zoom", _zoom);
     program->set_uniform("scale", _scale);
     program->set_uniform("frames", _frames);
+    program->set_uniform("rand_seed", _seed % (1 << 16));
     // program->set_uniform("stage", (uint32_t)frames % 4);
     _reset = false;
     _clear = false;
     _frames++;
+    _seed++;
 }

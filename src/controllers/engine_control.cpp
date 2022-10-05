@@ -73,7 +73,8 @@ void EngineControl::draw_shader_options()
     {
         if (option->type == GLSL::IOption::Type::Float) {
             auto opt = static_cast<GLSL::ValueOption<float>*>(option);
-            opt->changed |= ImGui::SliderFloat(opt->label.c_str(), &opt->value, opt->min, opt->max);
+            auto flags = opt->logarithmic ? ImGuiSliderFlags_Logarithmic : ImGuiSliderFlags_None;
+            opt->changed |= ImGui::SliderFloat(opt->label.c_str(), &opt->value, opt->min, opt->max, "%.3f", flags);
         } else if (option->type == GLSL::IOption::Type::Int) {
             auto opt = static_cast<GLSL::ValueOption<int>*>(option);
             opt->changed |= ImGui::SliderInt(opt->label.c_str(), &opt->value, opt->min, opt->max);

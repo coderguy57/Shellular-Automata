@@ -31,8 +31,11 @@ uniform uint frames;
 
 //	----    ----    ----    ----    ----    ----    ----    ----
 
+//! option "Max radius" (2, 16)
 const uint MAX_RADIUS = 4u;
-const uint PULL_RAD = 4u;
+//! option "Pull radius" (1, 16)
+const uint PULL_RAD_IN = 4u;
+const uint PULL_RAD = min(MAX_RADIUS, PULL_RAD_IN);
 const uint PUSH_RAD = 0u;
 const float pull_scale = 1.;
 const float push_scale = 1.;

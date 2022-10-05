@@ -16,7 +16,6 @@ public:
     void update(Program *program) override;
     void post_process(Texture *texture) override{};
 
-
 private:
     void draw_change_size();
     void draw_change_shader();

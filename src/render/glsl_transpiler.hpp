@@ -62,10 +62,11 @@ namespace GLSL
     class ValueOption : public IOption
     {
     public:
-        ValueOption(std::string name, std::string label, std::vector<Token>::iterator it, T default_value, T min, T max, bool compile_constant);
+        ValueOption(std::string name, std::string label, std::vector<Token>::iterator it, T default_value, T min, T max, bool compile_constant, bool logarithmic);
 
         const T min;
         const T max;
+        const bool logarithmic = false;
 
         inline T get_value() {return value; }
         std::string const_expression() override;

@@ -8,8 +8,10 @@
 #include <vector>
 
 #include "engine.hpp"
+#include "viewer.hpp"
 #include "controllers/window_control.hpp"
 #include "controllers/engine_control.hpp"
+#include "controllers/viewer_control.hpp"
 #include "controllers/gui_control.hpp"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -69,6 +71,9 @@ Window::Window(int width, int height)
 
 void Window::run(Engine *engine, std::vector<GuiControl *> guis)
 {
+    auto size = engine->get_size();
+    Viewer *viewer = new Viewer(size.x, size.y, size.z, "viewer.fs", GL_RGBA32F);
+
     clock_t deltaTime = 0;
     unsigned int frames = 0;
     double frameRate = 30;
@@ -80,14 +85,18 @@ void Window::run(Engine *engine, std::vector<GuiControl *> guis)
     EngineControl *engine_controller = new EngineControl(engine);
     guis.insert(guis.begin(), engine_controller);
 
+    ViewerControl *viewer_controller = new ViewerControl(viewer);
+    guis.insert(guis.begin(), viewer_controller);
+
     WindowControl *window_controller = new WindowControl;
     guis.insert(guis.begin(), window_controller);
 
     // Main loop
     clock_t beginFrame = clock();
     clock_t endFrame = clock();
-    RenderSurface surface{};
-    FragmentProgram output_program{"basic.vs", "basic.fs"};
+    clock_t renderTime = clock();
+    // RenderSurface surface{};
+    // FragmentProgram output_program{"basic.vs", "basic.fs"};
     while (!glfwWindowShouldClose(_window))
     {
         if (window_controller->is_quit())
@@ -138,18 +147,24 @@ void Window::run(Engine *engine, std::vector<GuiControl *> guis)
             gui->draw();
         }
 
-        // Rendering
         ImGui::Render();
-        int display_w, display_h;
-        glfwGetFramebufferSize(_window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        output_program.use();
-        output_program.set_texture(0, "tex", engine->current_texture());
-        surface.draw();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        glfwSwapBuffers(_window);
+        clock_t currentTime = clock();
+        // if (clockToMilliseconds(currentTime - renderTime) > 1000.0 / 60.0) {
+            renderTime = clock();
+            // Rendering
+            int display_w, display_h;
+            glfwGetFramebufferSize(_window, &display_w, &display_h);
+            // glViewport(0, 0, display_w, display_h);
+            // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            // output_program.use();
+            // output_program.set_texture(0, "tex", engine->current_texture());
+            // surface.draw();
+            viewer->view(display_w, display_h, engine->current_texture());
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+            glfwSwapBuffers(_window);
+        // }
     }
 
     // Cleanup

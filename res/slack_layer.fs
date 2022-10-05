@@ -47,6 +47,7 @@ uniform uint frames;
 
 //	----    ----    ----    ----    ----    ----    ----    ----
 
+//! option "Max radius" (2, 16)
 const uint MAX_RADIUS = 12u;
 
 //	----    ----    ----    ----    ----    ----    ----    ----

@@ -29,4 +29,5 @@ private:
     bool _clear = false;
     int _mode = 0;
     uint32_t _frames = 0;
+    uint32_t _seed = 0;
 };

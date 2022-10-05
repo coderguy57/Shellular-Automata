@@ -21,7 +21,7 @@ uniform float zoom;
 uniform float scale;
 uniform uint stage;
 
-uniform uint v63;
+uniform uint rand_seed;
 uniform uint frames;
 
 uniform vec3 paint_color;
@@ -37,9 +37,13 @@ uniform bool paint_smooth;
 #define CALC_FLOW 2u
 
 //	----    ----    ----    ----    ----    ----    ----    ----
+// ! texture_format GL_RGBA32F
 
+//! option "Max radius" (2, 16)
 const uint MAX_RADIUS = 4u;
-const uint PULL_RAD = 4u;
+//! option "Pull radius" (1, 16)
+const uint PULL_RAD_IN = 4u;
+const uint PULL_RAD = min(MAX_RADIUS, PULL_RAD_IN);
 const uint PUSH_RAD = 0u;
 const float pull_scale = 5.;
 const float push_scale = 1.;
@@ -331,9 +335,9 @@ void main() {
 //	----    ----    ----    ----    ----    ----    ----    ----
 
 	if(frames <= 0u || cmd == 1u) {
-		res_c[0] = 0.2 * (1.-lmap()) * reseed(u32_upk(v63, 8u, 24u) + 0u, 1.0, 0.4);
-		res_c[1] = 0.2 * lmap() * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
-		res_c[2] = 0.2 * vmap() * reseed(u32_upk(v63, 8u, 24u) + 1u, 1.0, 0.4);
+		res_c[0] = 0.2 * (1.-lmap()) * reseed(rand_seed, 1.0, 0.4);
+		res_c[1] = 0.2 * lmap() * reseed(rand_seed + 1u, 1.0, 0.4);
+		res_c[2] = 0.2 * vmap() * reseed(rand_seed + 2u, 1.0, 0.4);
 		res_c[3] = 0.; }
 
 	if( cmd == 2u ) {

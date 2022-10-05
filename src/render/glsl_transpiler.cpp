@@ -25,18 +25,30 @@ template class ValueOption<u_int>;
 template class ValueOption<float>;
 
 template <>
-ValueOption<int>::ValueOption(std::string name, std::string label, std::vector<Token>::iterator it, int default_value, int min_, int max_, bool compile_constant)
+ValueOption<int>::ValueOption(
+    std::string name, std::string label, 
+    std::vector<Token>::iterator it, 
+    int default_value, int min_, int max_, 
+    bool compile_constant, bool logarithmic)
     : value{default_value}, min{min_}, max{max_}, IOption(IOption::Type::Int, name, label, it, compile_constant) {}
 
 
 template <>
-ValueOption<u_int>::ValueOption(std::string name, std::string label, std::vector<Token>::iterator it, u_int default_value, u_int min_, u_int max_, bool compile_constant)
+ValueOption<u_int>::ValueOption(
+    std::string name, std::string label, 
+    std::vector<Token>::iterator it, 
+    u_int default_value, u_int min_, u_int max_, 
+    bool compile_constant, bool logarithmic)
     : value{default_value}, min{min_}, max{max_}, IOption(IOption::Type::UInt, name, label, it, compile_constant) {}
 
 
 template <>
-ValueOption<float>::ValueOption(std::string name, std::string label, std::vector<Token>::iterator it, float default_value, float min_, float max_, bool compile_constant)
-    : value{default_value}, min{min_}, max{max_}, IOption(IOption::Type::Float, name, label, it, compile_constant) {}
+ValueOption<float>::ValueOption(
+    std::string name, std::string label, 
+    std::vector<Token>::iterator it, 
+    float default_value, float min_, float max_, 
+    bool compile_constant, bool logarithmic)
+    : value{default_value}, min{min_}, max{max_}, logarithmic{logarithmic}, IOption(IOption::Type::Float, name, label, it, compile_constant) {}
 
 template <>
 std::string ValueOption<int>::const_expression() {
@@ -52,28 +64,6 @@ template <>
 std::string ValueOption<float>::const_expression() {
     return "const float " + name + " = " + std::to_string(value) + ";";
 }
-
-// void Option::update_option() {
-//     if (!compile_constant) {
-//         _it->data = "";
-//         return;
-//     }
-
-//     switch (type) {
-//         case Type::Float:
-//             _it->data = "const float " + name + " " + std::to_string(value) + ";";
-//             break;
-//         case Type::Int:
-//             _it->data = "const int " + name + " " + std::to_string((int)value) + ";";
-//             break;
-//         case Type::UInt:
-//             _it->data = "const uint " + name + " " + std::to_string((u_int)value) + ";";
-//             break;
-//         case Type::Bool:
-//         case Type::Command:
-//             _it->data = "const bool " + name + " " + (value ? "true" : "false") + ";";
-//     }
-// }
 
 std::string Context::get_identifier(std::string::iterator &it) {
     std::string::iterator start_it = it;
@@ -307,49 +297,54 @@ void Context::parser() {
         IOption::Type type = get_option_type(it + 3);
         std::string name = (it + 4)->data;
 
-        std::string default_value;
+        std::string default_value = "0";
         if ((it + 5)->type == TokenType::ASSIGN) {
             default_value = (it + 6)->data;
         }
 
         it->type = TokenType::OPTION;
 
+        bool logarithmic = false;
         std::string label = name;
         float min = 0, max = 1;
-        while (params) {
-            char delimiter;
-            params >> delimiter;
+        char delimiter;
+        while (params >> delimiter) {
             if (delimiter == '\"') {
-                params >> name >> param;
+                std::getline(params, label, '\"');
             } else if (delimiter == '(') {
                 if (type == IOption::Type::Bool) {
-                    params >> param;
-                    type = param == "command)" ? IOption::Type::Command : type;
-                    delimiter = ')';
+                    std::getline(params, param, ')');
+                    type = param == "command" ? IOption::Type::Command : type;
                     continue;
-                }
-                params >> min;
-                if (params.peek() == ',')
+                } else {
+                    params >> min;
+                    if (params.peek() == ',')
+                        params >> delimiter;
+                    params >> max;
                     params >> delimiter;
-                params >> max;
-                params >> delimiter;
-                if (params.fail() || delimiter != ')') {
-                    throw Exception(it, "Option range is invalid.");
+                    if (params.fail() || delimiter != ')') {
+                        throw Exception(it, "Option range is invalid.");
+                    }
                 }
             } else if (delimiter == '=') {
                 params >> default_value;
+            } else if (delimiter == 'e') {
+                std::string param;
+                params >> param;
+                if (param == "xp")
+                    logarithmic = true;
             }
         }
 
         switch (type) {
             case IOption::Type::Float:
-                options.push_back(new ValueOption<float>(name, label, it, std::stof(default_value), min, max, compile_const));
+                options.push_back(new ValueOption<float>(name, label, it, std::stof(default_value), min, max, compile_const, logarithmic));
                 break;
             case IOption::Type::Int:
-                options.push_back(new ValueOption<int>(name, label, it, std::stoi(default_value), min, max, compile_const));
+                options.push_back(new ValueOption<int>(name, label, it, std::stoi(default_value), min, max, compile_const, logarithmic));
                 break;
             case IOption::Type::UInt:
-                options.push_back(new ValueOption<u_int>(name, label, it, std::stoi(default_value), min, max, compile_const));
+                options.push_back(new ValueOption<u_int>(name, label, it, std::stoi(default_value), min, max, compile_const, logarithmic));
                 break;
             case IOption::Type::Bool:
                 options.push_back(new BoolOption(name, label, it, default_value == "true", compile_const));

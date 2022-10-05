@@ -1,24 +1,5 @@
-//	----    ----    ----    ----    ----    ----    ----    ----
-//
-//	Shader developed by Slackermanz:
-//
-//		https://slackermanz.com
-//
-//		Discord:	Slackermanz#3405
-//		Github:		https://github.com/Slackermanz
-//		Twitter:	https://twitter.com/slackermanz
-//		YouTube:	https://www.youtube.com/c/slackermanz
-//		Shadertoy: 	https://www.shadertoy.com/user/SlackermanzCA
-//		Reddit:		https://old.reddit.com/user/slackermanz
-//
-//		Communities:
-//			Reddit:	https://old.reddit.com/r/cellular_automata
-//			Discord Servers:
-//				Artificial Life: 	https://discord.gg/7qvBBVca7u
-//				Emergence:			https://discord.com/invite/J3phjtD
-//				ConwayLifeLounge:	https://discord.gg/BCuYCEn
-//
-//	----    ----    ----    ----    ----    ----    ----    ----
+// Same as slackermanz but with changes based on this
+// https://direct.mit.edu/isal/proceedings/isal/91/102916
 
 #version 460
 #define PI 3.14159265359
@@ -45,6 +26,12 @@ uniform uint v63;
 uniform uint frames;
 
 //	----    ----    ----    ----    ----    ----    ----    ----
+
+//! option "Scale" (0.01, 200)
+uniform float extra = 100;
+
+//! option "Speed" (0.001, 1)
+uniform float speed = 0.1;
 
 //! option "Max radius" (2, 16)
 const uint MAX_RADIUS = 16u;
@@ -227,6 +214,7 @@ void main() {
 
 //	Result Values
 	vec4 res_v = res_c;
+	vec4 target = vec4(0);
 
 	for(uint i = 0u; i < 24u; i++) {
 		uint cho = u32_upk(ch[i / 8u], 2u, (i * 4u + 0u) & 31u);
@@ -239,17 +227,20 @@ void main() {
 		float nhv = bitring(nh_rings_c, nb[i / 2u], (i & 1u) * 16u)[cho];
 
 		if(nhv >= utp(ur[i], 8u, 0u) && nhv <= utp(ur[i], 8u, 1u)) {
-			float h = hmp2(res_c[chm], 1.2);
-			res_v[chi] += bsn(us[i / 16u], ((i * 2u + 0u) & 31u)) * s * h;
+			float h = hmp2(res_c[0], 1.2);
+			target[chi] += bsn(us[i / 16u], ((i * 2u + 0u) & 31u)) * s * h * nhv;
 		}
 		if(nhv >= utp(ur[i], 8u, 2u) && nhv <= utp(ur[i], 8u, 3u)) {
-			float h = hmp2(res_c[chm], 1.2);
-			res_v[chi] += bsn(us[i / 16u], ((i * 2u + 1u) & 31u)) * s * h;
+			float h = hmp2(res_c[0], 1.2);
+			target[chi] += bsn(us[i / 16u], ((i * 2u + 1u) & 31u)) * s * h * nhv;
 		}
 	}
 
-	vec4 n4 = sigm(res_v, 0.5) * n * 64.0 + n;
-	res_c = res_v - n4;
+	// vec4 n4 = sigm(res_v, 0.5) * n * 64.0 + n;
+	target *= extra;
+	// target = 0.5 + target;
+	target = max(vec4(0.), min(vec4(1.), target));
+	res_c = res_v + speed * (target - res_v);
 
 //	----    ----    ----    ----    ----    ----    ----    ----
 //	Shader Output
