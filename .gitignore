@@ -2,4 +2,6 @@
 /out
 /vid
 .vscode
+.vs
 imgui.ini
+[Bb]uild-*/

@@ -21,7 +21,7 @@ CommandOption::CommandOption(std::string name, std::string label, std::vector<To
     : IOption(IOption::Type::Command, name, label, it, compile_constant) {}
 
 template class ValueOption<int>;
-template class ValueOption<u_int>;
+template class ValueOption<uint32_t>;
 template class ValueOption<float>;
 
 template <>
@@ -34,10 +34,10 @@ ValueOption<int>::ValueOption(
 
 
 template <>
-ValueOption<u_int>::ValueOption(
+ValueOption<uint32_t>::ValueOption(
     std::string name, std::string label, 
     std::vector<Token>::iterator it, 
-    u_int default_value, u_int min_, u_int max_, 
+    uint32_t default_value, uint32_t min_, uint32_t max_,
     bool compile_constant, bool logarithmic)
     : value{default_value}, min{min_}, max{max_}, IOption(IOption::Type::UInt, name, label, it, compile_constant) {}
 
@@ -56,7 +56,7 @@ std::string ValueOption<int>::const_expression() {
 }
 
 template <>
-std::string ValueOption<u_int>::const_expression() {
+std::string ValueOption<uint32_t>::const_expression() {
     return "const uint " + name + " = " + std::to_string(value) + ";";
 }
 
@@ -344,7 +344,7 @@ void Context::parser() {
                 options.push_back(new ValueOption<int>(name, label, it, std::stoi(default_value), min, max, compile_const, logarithmic));
                 break;
             case IOption::Type::UInt:
-                options.push_back(new ValueOption<u_int>(name, label, it, std::stoi(default_value), min, max, compile_const, logarithmic));
+                options.push_back(new ValueOption<uint32_t>(name, label, it, std::stoi(default_value), min, max, compile_const, logarithmic));
                 break;
             case IOption::Type::Bool:
                 options.push_back(new BoolOption(name, label, it, default_value == "true", compile_const));

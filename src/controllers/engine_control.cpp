@@ -45,7 +45,7 @@ void EngineControl::draw_change_shader()
             const auto file_path = dir_entry.path();
             if (file_path.extension() == ".fs")
             {
-                shaders_names.push_back(file_path.filename());
+                shaders_names.push_back(file_path.filename().string());
             }
         }
     }
@@ -55,7 +55,7 @@ void EngineControl::draw_change_shader()
         if (ImGui::Button(shader_name.c_str()))
         {
             std::filesystem::path path("../res/" + shader_name);
-            _engine->change_shader(path);
+            _engine->change_shader(path.string());
         }
     }
 
@@ -79,7 +79,7 @@ void EngineControl::draw_shader_options()
             auto opt = static_cast<GLSL::ValueOption<int>*>(option);
             opt->changed |= ImGui::SliderInt(opt->label.c_str(), &opt->value, opt->min, opt->max);
         } else if (option->type == GLSL::IOption::Type::UInt) {
-            auto opt = static_cast<GLSL::ValueOption<u_int>*>(option);
+            auto opt = static_cast<GLSL::ValueOption<uint32_t>*>(option);
             opt->changed |= ImGui::SliderScalar(opt->label.c_str(), ImGuiDataType_U32, &opt->value, &opt->min, &opt->max);
         } else if (option->type == GLSL::IOption::Type::Bool) {
             auto opt = static_cast<GLSL::BoolOption*>(option);
