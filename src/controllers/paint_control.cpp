@@ -79,7 +79,7 @@ void PaintControl::update(Program *program)
     program->set_uniform("mxy", mouse_pos.x, mouse_pos.y);
     program->set_uniform("mlr", left_click, right_click);
     program->set_uniform("paint_color", _color.r, _color.g, _color.b);
-    glm::vec3 color_mask = glm::vec3(color_mask);
+    glm::vec3 color_mask = glm::vec3(0);
     program->set_uniform("paint_mask", _color_mask.r, _color_mask.g, _color_mask.b);
     program->set_uniform("paint_size", _cursor_size);
     program->set_uniform("paint_smooth", _cursor_smooth);

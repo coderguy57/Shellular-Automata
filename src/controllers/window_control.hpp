@@ -33,7 +33,7 @@ private:
     bool _step = false;
 
     bool _show_video_window = false;
-    bool _do_save;
+    bool _do_save = false;
     int _video_frame;
     int _output_fps = 20;
     int _capture_frequence = 10;

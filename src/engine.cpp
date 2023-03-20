@@ -9,7 +9,7 @@
 #include "render/shader.hpp"
 #include "render/texture.hpp"
 
-Engine::Engine(uint width, uint height, uint depth, std::string frag_path, GLuint internal_format, uint stages)
+Engine::Engine(uint32_t width, uint32_t height, uint32_t depth, std::string frag_path, GLuint internal_format, uint32_t stages)
     : _width(width), _height(height), _depth{depth},
       _internal_format{internal_format}, _frag_path{frag_path}, _stages(stages)
 {
@@ -53,7 +53,7 @@ void Engine::change_shader(std::string frag_path)
     _frag_path = frag_path;
 }
 
-void Engine::set_size(uint width, uint height)
+void Engine::set_size(uint32_t width, uint32_t height)
 {
     _width = width;
     _height = height;
@@ -97,7 +97,7 @@ void Engine::set_size(uint width, uint height)
 
 void Engine::step()
 {
-    for (uint stage = 0; stage < _stages; stage++)
+    for (uint32_t stage = 0; stage < _stages; stage++)
     {
         _tex0_last_drawn = !_tex0_last_drawn;
 

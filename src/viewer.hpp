@@ -8,9 +8,9 @@
 
 class Viewer {
 public:
-    Viewer(uint width, uint height, uint depth, std::string frag_path, GLuint internal_format);
+    Viewer(uint32_t width, uint32_t height, uint32_t depth, std::string frag_path, GLuint internal_format);
     ~Viewer();
-    void view(uint width, uint height, const Texture* texture);
+    void view(uint32_t width, uint32_t height, const Texture* texture);
     // void render();
     // Texture *current_texture();
     FragmentProgram *program;

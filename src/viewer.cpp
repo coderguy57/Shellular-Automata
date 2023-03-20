@@ -1,6 +1,6 @@
 #include "viewer.hpp"
 
-Viewer::Viewer(uint width, uint height, uint depth, std::string frag_path, GLuint internal_format)
+Viewer::Viewer(uint32_t width, uint32_t height, uint32_t depth, std::string frag_path, GLuint internal_format)
     : _frag_path{frag_path} {
     program = new FragmentProgram{"basic.vs", frag_path};
     output_program = new FragmentProgram{"basic.vs", "basic.fs"};
@@ -27,7 +27,7 @@ void Viewer::reload() {
     program = new FragmentProgram("basic.vs", _frag_path);
 }
 
-void Viewer::view(uint width, uint height, const Texture* texture) {
+void Viewer::view(uint32_t width, uint32_t height, const Texture* texture) {
     if (_tex0->width != texture->width || _tex0->height != texture->height) {
         delete _tex0;
         delete _tex1;

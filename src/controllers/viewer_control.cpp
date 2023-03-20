@@ -28,7 +28,7 @@ void ViewerControl::draw_shader_options()
             auto opt = static_cast<GLSL::ValueOption<int>*>(option);
             opt->changed |= ImGui::SliderInt(opt->label.c_str(), &opt->value, opt->min, opt->max);
         } else if (option->type == GLSL::IOption::Type::UInt) {
-            auto opt = static_cast<GLSL::ValueOption<u_int>*>(option);
+            auto opt = static_cast<GLSL::ValueOption<uint32_t>*>(option);
             opt->changed |= ImGui::SliderScalar(opt->label.c_str(), ImGuiDataType_U32, &opt->value, &opt->min, &opt->max);
         } else if (option->type == GLSL::IOption::Type::Bool) {
             auto opt = static_cast<GLSL::BoolOption*>(option);
