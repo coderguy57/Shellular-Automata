@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <vector>
+#include <chrono>
 
 #include "engine.hpp"
 #include "viewer.hpp"
@@ -21,9 +22,9 @@ static void glfw_error_callback(int error, const char *description)
 {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
-double clockToMilliseconds(clock_t ticks)
+double clockToMilliseconds(std::chrono::nanoseconds ticks)
 {
-    return (ticks / (double)CLOCKS_PER_SEC) * 1000.0;
+    return (ticks / std::chrono::milliseconds(1)) * 1000.0;
 }
 
 Window::Window(int width, int height)
@@ -74,7 +75,6 @@ void Window::run(Engine *engine, std::vector<GuiControl *> guis)
     auto size = engine->get_size();
     Viewer *viewer = new Viewer(size.x, size.y, size.z, "viewer.fs", GL_RGBA32F);
 
-    clock_t deltaTime = 0;
     unsigned int frames = 0;
     double frameRate = 30;
     double averageFrameTimeMilliseconds = 33.333;
@@ -92,9 +92,10 @@ void Window::run(Engine *engine, std::vector<GuiControl *> guis)
     guis.insert(guis.begin(), window_controller);
 
     // Main loop
-    clock_t beginFrame = clock();
-    clock_t endFrame = clock();
-    clock_t renderTime = clock();
+    auto beginFrame = std::chrono::steady_clock::now();
+    auto endFrame = std::chrono::steady_clock::now();
+    auto renderTime = std::chrono::steady_clock::now();
+    auto deltaTime = endFrame - beginFrame;
     // RenderSurface surface{};
     // FragmentProgram output_program{"basic.vs", "basic.fs"};
     while (!glfwWindowShouldClose(_window))
@@ -104,19 +105,19 @@ void Window::run(Engine *engine, std::vector<GuiControl *> guis)
             break;
         }
 
-        endFrame = clock();
+        endFrame = std::chrono::steady_clock::now();
         if (!window_controller->is_paused())
         {
             deltaTime += endFrame - beginFrame;
             frames++;
         }
-        beginFrame = clock();
+        beginFrame = std::chrono::steady_clock::now();
 
         if (clockToMilliseconds(deltaTime) > 1000.0)
         {                                                       // every second
             frameRate = (double)frames * 0.5 + frameRate * 0.5; // more stable
             frames = 0;
-            deltaTime -= CLOCKS_PER_SEC;
+            deltaTime -= std::chrono::seconds(1);
             averageFrameTimeMilliseconds = 1000.0 / (frameRate == 0 ? 0.001 : frameRate);
 
             std::cout << "FrameTime was:" << frameRate << std::endl;
@@ -149,9 +150,9 @@ void Window::run(Engine *engine, std::vector<GuiControl *> guis)
 
         ImGui::Render();
 
-        clock_t currentTime = clock();
-        // if (clockToMilliseconds(currentTime - renderTime) > 1000.0 / 60.0) {
-            renderTime = clock();
+        auto currentTime = std::chrono::steady_clock::now();
+        if (clockToMilliseconds(currentTime - renderTime) > 1000.0 / 60.0) {
+            renderTime = std::chrono::steady_clock::now();
             // Rendering
             int display_w, display_h;
             glfwGetFramebufferSize(_window, &display_w, &display_h);
@@ -164,7 +165,7 @@ void Window::run(Engine *engine, std::vector<GuiControl *> guis)
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
             glfwSwapBuffers(_window);
-        // }
+        }
     }
 
     // Cleanup

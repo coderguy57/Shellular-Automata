@@ -44,7 +44,7 @@ void WindowControl::draw_video_window()
 
 void WindowControl::draw()
 {
-    if (ImGui::IsKeyPressed(' '))
+    if (ImGui::IsKeyPressed(' ') || ImGui::IsKeyPressed('9'))
     {
         _paused = !_paused;
     }
