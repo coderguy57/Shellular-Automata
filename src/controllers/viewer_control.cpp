@@ -7,7 +7,7 @@
 #include "render/shader.hpp"
 #include "render/glsl_transpiler.hpp"
 
-ViewerControl::ViewerControl(Viewer *viewer) : _viewer{viewer}
+ViewerControl::ViewerControl(Viewer &viewer) : _viewer{viewer}
 { 
 }
 
@@ -16,7 +16,7 @@ void ViewerControl::draw_shader_options()
     ImGui::Begin("Shader options", &_show_shader_options,
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
 
-    FragmentProgram *program = _viewer->program;
+    FragmentProgram *program = _viewer.program;
 
     for (GLSL::IOption* option : program->get_options())
     {
@@ -51,9 +51,9 @@ void ViewerControl::draw()
         {
             if (ImGui::MenuItem("Reload shader", ""))
             {
-                _viewer->reload();
+                _viewer.reload();
             }
-            if (_viewer->program->get_options().size() > 0)
+            if (_viewer.program->get_options().size() > 0)
             {
                 ImGui::Separator();
                 if (ImGui::MenuItem("Shader options", ""))

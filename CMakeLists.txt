@@ -33,4 +33,5 @@ target_link_libraries(ShellularAutomata PRIVATE
 	dependency_GLEW
 	dependency_GLFW
 	dependency_glm
-	dependency_imgui)
+	dependency_imgui
+	dependency_yaml)

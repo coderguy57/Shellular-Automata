@@ -1,0 +1,14 @@
+engine:
+  type: FragmentShaderEngine
+  shader: "conservative_rulefactorS.fs"
+  format: "GL_RGBA32F"
+  width: 256
+  height: 256
+  depth: 3
+  steps: 3
+controllers:
+  - type: "Mutation"
+  - type: "Statistics"
+  - type: "Paint"
+visualizer:
+  type: "2DRenderer"

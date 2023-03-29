@@ -10,7 +10,7 @@ class Texture;
 class ViewerControl : public GuiControl
 {
 public:
-    ViewerControl(Viewer* viewer);
+    ViewerControl(Viewer& viewer);
     ~ViewerControl(){};
     void draw() override;
     void update(Program *program) override{};
@@ -19,7 +19,7 @@ public:
 private:
     void draw_shader_options();
 
-    Viewer* _viewer;
+    Viewer& _viewer;
 
     bool _show_shader_options = false;
 };

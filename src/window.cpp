@@ -3,11 +3,12 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h> // Will drag system OpenGL headers
 #include <stdio.h>
-
 #include <iostream>
 #include <vector>
 #include <chrono>
+#include <atomic>
 
+#include "simulation_setup.hpp"
 #include "engine.hpp"
 #include "viewer.hpp"
 #include "controllers/window_control.hpp"
@@ -34,8 +35,8 @@ Window::Window(int width, int height)
     if (!glfwInit())
         throw "Failed to init glfw\n";
 
-    //glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-    glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
+    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+    // glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // 3.2+ only
@@ -71,11 +72,8 @@ Window::Window(int width, int height)
     glDebugMessageCallback(GLDebugMessageCallback, 0);
 }
 
-void Window::run(Engine *engine, std::vector<GuiControl *> guis)
+void Window::run(SimulationSetup simulation)
 {
-    auto size = engine->get_size();
-    Viewer *viewer = new Viewer(size.x, size.y, size.z, "viewer.fs", GL_RGBA32F);
-
     unsigned int frames = 0;
     double frameRate = 30;
     double averageFrameTimeMilliseconds = 33.333;
@@ -83,31 +81,27 @@ void Window::run(Engine *engine, std::vector<GuiControl *> guis)
     // Our state
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-    EngineControl *engine_controller = new EngineControl(engine);
-    guis.insert(guis.begin(), engine_controller);
+    std::atomic<bool> is_quit(false);
+    std::atomic<bool> is_paused(false);
 
-    ViewerControl *viewer_controller = new ViewerControl(viewer);
-    guis.insert(guis.begin(), viewer_controller);
-
-    WindowControl *window_controller = new WindowControl;
-    guis.insert(guis.begin(), window_controller);
+    simulation.add_controller(std::make_unique<EngineControl>(simulation.engine()));
+    simulation.add_controller(std::make_unique<ViewerControl>(simulation.viewer()));
+    simulation.add_controller(std::make_unique<WindowControl>(is_quit, is_paused));
 
     // Main loop
     auto beginFrame = std::chrono::steady_clock::now();
     auto endFrame = std::chrono::steady_clock::now();
     auto renderTime = std::chrono::steady_clock::now();
     auto deltaTime = endFrame - beginFrame;
-    // RenderSurface surface{};
-    // FragmentProgram output_program{"basic.vs", "basic.fs"};
     while (!glfwWindowShouldClose(_window))
     {
-        if (window_controller->is_quit())
+        if (is_quit)
         {
             break;
         }
 
         endFrame = std::chrono::steady_clock::now();
-        if (!window_controller->is_paused())
+        if (!is_paused)
         {
             deltaTime += endFrame - beginFrame;
             frames++;
@@ -128,23 +122,23 @@ void Window::run(Engine *engine, std::vector<GuiControl *> guis)
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        engine->start();
-        auto engine_shader = engine->program;
-        if (!window_controller->is_paused())
+        simulation.engine().start();
+        auto engine_shader = simulation.engine().program;
+        if (!is_paused)
         {
-            for (auto gui : guis)
+            for (auto& gui : simulation.controllers())
             {
                 gui->update(engine_shader);
             }
-            engine->step();
-            for (auto gui : guis)
+            simulation.engine().step();
+            for (auto& gui : simulation.controllers())
             {
-                gui->post_process(engine->current_texture());
+                gui->post_process(simulation.engine().current_texture());
             }
         }
 
         // ImGui::ShowDemoWindow();
-        for (auto gui : guis)
+        for (auto& gui : simulation.controllers())
         {
             gui->draw();
         }
@@ -157,12 +151,7 @@ void Window::run(Engine *engine, std::vector<GuiControl *> guis)
             // Rendering
             int display_w, display_h;
             glfwGetFramebufferSize(_window, &display_w, &display_h);
-            // glViewport(0, 0, display_w, display_h);
-            // glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            // output_program.use();
-            // output_program.set_texture(0, "tex", engine->current_texture());
-            // surface.draw();
-            viewer->view(display_w, display_h, engine->current_texture());
+            simulation.viewer().view(display_w, display_h, simulation.engine().current_texture());
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
             glfwSwapBuffers(_window);

@@ -28,6 +28,7 @@ void Viewer::reload() {
 }
 
 void Viewer::view(uint32_t width, uint32_t height, const Texture* texture) {
+    // Change the texture size if it has changed
     if (_tex0->width != texture->width || _tex0->height != texture->height) {
         delete _tex0;
         delete _tex1;

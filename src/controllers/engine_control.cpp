@@ -7,9 +7,9 @@
 #include "render/shader.hpp"
 #include "render/glsl_transpiler.hpp"
 
-EngineControl::EngineControl(Engine *engine) : _engine{engine}
+EngineControl::EngineControl(Engine& engine) : _engine{engine}
 {
-    auto engine_size = _engine->get_size();
+    auto engine_size = _engine.get_size();
     _engine_width = engine_size.x;
     _engine_height = engine_size.y;
 }
@@ -55,7 +55,7 @@ void EngineControl::draw_change_shader()
         if (ImGui::Button(shader_name.c_str()))
         {
             std::filesystem::path path("../res/" + shader_name);
-            _engine->change_shader(path.string());
+            _engine.change_shader(path.string());
         }
     }
 
@@ -67,7 +67,7 @@ void EngineControl::draw_shader_options()
     ImGui::Begin("Shader options", &_show_shader_options,
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
 
-    FragmentProgram *program = _engine->program;
+    FragmentProgram *program = _engine.program;
 
     for (GLSL::IOption* option : program->get_options())
     {
@@ -107,14 +107,14 @@ void EngineControl::draw()
             ImGui::Separator();
             if (ImGui::MenuItem("Reload shader", ""))
             {
-                _engine->reload();
+                _engine.reload();
             }
             ImGui::Separator();
             if (ImGui::MenuItem("Change shader", ""))
             {
                 _show_change_shader = !_show_change_shader;
             }
-            if (_engine->program->get_options().size() > 0)
+            if (_engine.program->get_options().size() > 0)
             {
                 ImGui::Separator();
                 if (ImGui::MenuItem("Shader options", ""))
@@ -149,8 +149,8 @@ void EngineControl::draw()
 
 void EngineControl::update(Program *program)
 {
-    if (_engine_width != _engine->get_size().x || _engine_height != _engine->get_size().y)
+    if (_engine_width != _engine.get_size().x || _engine_height != _engine.get_size().y)
     {
-        _engine->set_size(_engine_width, _engine_height);
+        _engine.set_size(_engine_width, _engine_height);
     }
 }

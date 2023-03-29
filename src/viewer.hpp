@@ -11,18 +11,10 @@ public:
     Viewer(uint32_t width, uint32_t height, uint32_t depth, std::string frag_path, GLuint internal_format);
     ~Viewer();
     void view(uint32_t width, uint32_t height, const Texture* texture);
-    // void render();
-    // Texture *current_texture();
     FragmentProgram *program;
     FragmentProgram *output_program;
 
-    // void set_size(uint width, uint height);
-    // inline glm::ivec3 get_size() const
-    // {
-    //     return glm::ivec3{_width, _height, _depth};
-    // };
     void reload();
-    // void change_shader(std::string frag_path);
 
 private:
     RenderSurface* _surface;

@@ -46,25 +46,25 @@ void WindowControl::draw()
 {
     if (ImGui::IsKeyPressed(' ') || ImGui::IsKeyPressed('9'))
     {
-        _paused = !_paused;
+        is_paused_ = !is_paused_;
     }
     if (ImGui::IsKeyPressed('0'))
     {
-        _paused = false;
+        is_paused_ = false;
         _step = true;
     }
     if (ImGui::BeginMainMenuBar())
     {
         if (ImGui::BeginMenu("Application"))
         {
-            if (ImGui::MenuItem(_paused ? "Play" : "Paused", "Space"))
+            if (ImGui::MenuItem(is_paused_ ? "Play" : "Paused", "Space"))
             {
-                _paused = !_paused;
+                is_paused_ = !is_paused_;
             }
             ImGui::Separator();
             if (ImGui::MenuItem("Step", "0"))
             {
-                _paused = false;
+                is_paused_ = false;
                 _step = true;
             }
             ImGui::Separator();
@@ -79,7 +79,7 @@ void WindowControl::draw()
             // ImGui::Separator();
             if (ImGui::MenuItem("Quit", ""))
             {
-                _quit = true;
+                is_quit_ = true;
             }
             ImGui::EndMenu();
         }
@@ -96,7 +96,7 @@ void WindowControl::draw()
 
 void WindowControl::post_process(Texture *texture)
 {
-    if (_do_save && !_paused)
+    if (_do_save && !is_paused_)
     {
         if (_capture_wait-- <= 0)
         {
@@ -138,7 +138,7 @@ void WindowControl::post_process(Texture *texture)
     }
     if (_step)
     {
-        _paused = true;
+        is_paused_ = true;
         _step = false;
     }
 }

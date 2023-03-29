@@ -3,6 +3,7 @@
 #include "gui_control.hpp"
 #include <string>
 #include <vector>
+#include <atomic>
 
 class Program;
 class Texture;
@@ -10,26 +11,18 @@ class TextureSave;
 class WindowControl : public GuiControl
 {
 public:
-    WindowControl(){};
+    WindowControl(std::atomic<bool> &is_quit, std::atomic<bool> &is_paused)
+        : is_quit_{is_quit}, is_paused_{is_paused} {};
     ~WindowControl(){};
     void draw() override;
     void update(Program *program) override{};
     void post_process(Texture *texture) override;
 
-    inline bool is_paused()
-    {
-        return _paused;
-    };
-    inline bool is_quit()
-    {
-        return _quit;
-    };
-
 private:
     void draw_video_window();
 
-    bool _paused = false;
-    bool _quit = false;
+    std::atomic<bool> &is_quit_;
+    std::atomic<bool> &is_paused_;
     bool _step = false;
 
     bool _show_video_window = false;

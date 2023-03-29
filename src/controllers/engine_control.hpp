@@ -10,7 +10,7 @@ class Texture;
 class EngineControl : public GuiControl
 {
 public:
-    EngineControl(Engine* engine);
+    EngineControl(Engine& engine);
     ~EngineControl(){};
     void draw() override;
     void update(Program *program) override;
@@ -21,7 +21,7 @@ private:
     void draw_change_shader();
     void draw_shader_options();
 
-    Engine* _engine;
+    Engine& _engine;
 
     bool _step = false;
 
