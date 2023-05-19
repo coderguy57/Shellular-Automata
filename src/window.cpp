@@ -9,7 +9,7 @@
 #include <atomic>
 
 #include "simulation_setup.hpp"
-#include "engine.hpp"
+#include "simulation_setup_loader.hpp"
 #include "viewer.hpp"
 #include "controllers/window_control.hpp"
 #include "controllers/engine_control.hpp"
@@ -83,10 +83,11 @@ void Window::run(SimulationSetup simulation)
 
     std::atomic<bool> is_quit(false);
     std::atomic<bool> is_paused(false);
+    std::string new_simulation_setup = "";
 
-    simulation.add_controller(std::make_unique<EngineControl>(simulation.engine()));
-    simulation.add_controller(std::make_unique<ViewerControl>(simulation.viewer()));
-    simulation.add_controller(std::make_unique<WindowControl>(is_quit, is_paused));
+    // simulation.add_controller_front(std::make_unique<EngineControl>(simulation.engine()));
+    simulation.add_controller_front(std::make_unique<ViewerControl>(simulation.viewer()));
+    simulation.add_controller_front(std::make_unique<WindowControl>(is_quit, is_paused, new_simulation_setup));
 
     // Main loop
     auto beginFrame = std::chrono::steady_clock::now();
@@ -98,6 +99,12 @@ void Window::run(SimulationSetup simulation)
         if (is_quit)
         {
             break;
+        }
+        if (new_simulation_setup != "") {
+            simulation = std::move(load_simulation_setup(new_simulation_setup));
+            simulation.add_controller_front(std::make_unique<ViewerControl>(simulation.viewer()));
+            simulation.add_controller_front(std::make_unique<WindowControl>(is_quit, is_paused, new_simulation_setup));
+            new_simulation_setup = "";
         }
 
         endFrame = std::chrono::steady_clock::now();
@@ -122,18 +129,16 @@ void Window::run(SimulationSetup simulation)
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        simulation.engine().start();
-        auto engine_shader = simulation.engine().program;
         if (!is_paused)
         {
             for (auto& gui : simulation.controllers())
             {
-                gui->update(engine_shader);
+                gui->update(simulation.data());
             }
-            simulation.engine().step();
+            simulation.engine().step(simulation.data());
             for (auto& gui : simulation.controllers())
             {
-                gui->post_process(simulation.engine().current_texture());
+                gui->post_process(simulation.data());
             }
         }
 
@@ -151,7 +156,7 @@ void Window::run(SimulationSetup simulation)
             // Rendering
             int display_w, display_h;
             glfwGetFramebufferSize(_window, &display_w, &display_h);
-            simulation.viewer().view(display_w, display_h, simulation.engine().current_texture());
+            simulation.viewer().view(display_w, display_h, simulation.data());
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
             glfwSwapBuffers(_window);

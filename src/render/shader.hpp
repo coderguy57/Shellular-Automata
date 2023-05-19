@@ -10,20 +10,21 @@
 #include "../print.hpp"
 #include "texture.hpp"
 
-namespace GLSL {
+namespace GLSL
+{
     class Context;
     class IOption;
 }
 
 class Shader
 {
-private:
+protected:
     bool compile(GLuint type);
     std::string _buffer;
     GLuint _id = 0;
     GLuint _type;
     bool _success = true;
-    GLSL::Context* ctx = nullptr;
+    GLSL::Context *ctx = nullptr;
 
 public:
     Shader(const std::string &path, GLuint type);
@@ -32,7 +33,7 @@ public:
     inline GLuint get_id() const { return _id; };
     inline void recompile() { _success = compile(_type); };
     inline bool is_success() const { return _success; };
-    std::vector<GLSL::IOption*> get_options() const;
+    std::vector<GLSL::IOption *> get_options() const;
 };
 
 class VertexShader : public Shader
@@ -51,6 +52,9 @@ class ComputeShader : public Shader
 {
 public:
     ComputeShader(const std::string &path);
+    int local_size_x();
+    int local_size_y();
+    int local_size_z();
 };
 
 class Program
@@ -87,7 +91,7 @@ public:
     void use() const;
 
     inline bool is_success() const { return _success; };
-    inline std::vector<GLSL::IOption*> get_options() const { return _f_shader->get_options(); };
+    inline std::vector<GLSL::IOption *> get_options() const { return _f_shader->get_options(); };
 };
 
 class ComputeProgram : public Program
@@ -99,6 +103,9 @@ public:
     ~ComputeProgram();
     void use() const;
     void run(int x, int y, int z) const;
+    int local_size_x() { return _c_shader->local_size_x(); }
+    int local_size_y() { return _c_shader->local_size_y(); }
+    int local_size_z() { return _c_shader->local_size_z(); }
 };
 
 template <typename T>
@@ -108,17 +115,25 @@ class Buffer
     size_t _size;
 
 public:
+    Buffer(GLuint size)
+    {
+        _size = size;
+        glGenBuffers(1, &_id);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _id);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, _size * sizeof(T), nullptr, GL_STATIC_DRAW);
+    }
     Buffer(std::vector<T> values)
     {
         _size = values.size();
         glGenBuffers(1, &_id);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, _id);
         glBufferData(GL_SHADER_STORAGE_BUFFER, values.size() * sizeof(T), &values[0], GL_STATIC_DRAW);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
 
-    Buffer()
+    ~Buffer()
     {
-        glUnmapBuffer(_id);
+        glDeleteBuffers(1, &_id);
     }
 
     void set_layout(int i)
@@ -126,10 +141,25 @@ public:
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i, _id);
     }
 
+    void clear()
+    {
+        std::vector<T> zeros(_size, 0);
+        write(zeros);
+    }
+
+    void write(std::vector<T> data)
+    {
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _id);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, _size * sizeof(T), data.data());
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    }
+
     std::vector<T> read()
     {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, _id);
         T *ptr = (T *)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
         return std::vector<T>(ptr, ptr + _size);
     }
 };

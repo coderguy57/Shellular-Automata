@@ -4,13 +4,15 @@
 
 #include "imgui.h"
 #include "render/shader.hpp"
+#include "data.hpp"
 
 uint32_t u32_upk(uint32_t u32, uint32_t bts, uint32_t off)
 {
     return (u32 >> off) & ((1u << bts) - 1u);
 }
 
-MutationControl::MutationControl()
+MutationControl::MutationControl(std::string fragment_name)
+: _fragment_name{fragment_name}
 {
     _seed = time(NULL);
     for (size_t i = 0; i < 64; i++)
@@ -421,8 +423,12 @@ void MutationControl::draw()
     }
 }
 
-void MutationControl::update(Program *program)
+void MutationControl::update(Data& data)
 {
+    auto& program_data = data.get_element<FragmentProgramData>(_fragment_name);
+    auto& program = program_data.get_program();
+    program.use();
+
     ImGuiIO &io = ImGui::GetIO();
     ImVec2 screen_size = io.DisplaySize;
     ImVec2 mouse_pos = io.MousePos;
@@ -436,28 +442,30 @@ void MutationControl::update(Program *program)
         left_click = false;
         right_click = false;
     }
-    program->set_uniform("nb", 12, &_mutation[0]);
-    program->set_uniform("ur", 24, &_mutation[12]);
-    program->set_uniform("us", 2, &_mutation[36]);
-    program->set_uniform("ch", 3, &_mutation[38]);
-    program->set_uniform("ch2", 3, &_mutation[41]);
-    program->set_uniform("ch3", 3, &_mutation[44]);
-    program->set_uniform("mxy", mouse_pos.x, mouse_pos.y);
-    program->set_uniform("mlr", left_click, right_click);
-    program->set_uniform("mode", (uint32_t)_mode);
+    program.set_uniform("nb", 12, &_mutation[0]);
+    program.set_uniform("ur", 24, &_mutation[12]);
+    program.set_uniform("us", 2, &_mutation[36]);
+    program.set_uniform("ch", 3, &_mutation[38]);
+    program.set_uniform("ch2", 3, &_mutation[41]);
+    program.set_uniform("ch3", 3, &_mutation[44]);
+    program.set_uniform("mxy", mouse_pos.x, mouse_pos.y);
+    program.set_uniform("mlr", left_click, right_click);
+    program.set_uniform("mode", (uint32_t)_mode);
     if (_reset)
-        program->set_uniform("cmd", (uint32_t)1);
+        program.set_uniform("cmd", (uint32_t)1);
     else if (_clear)
-        program->set_uniform("cmd", (uint32_t)2);
+        program.set_uniform("cmd", (uint32_t)2);
     else
-        program->set_uniform("cmd", (uint32_t)0);
-    program->set_uniform("zoom", _zoom);
-    program->set_uniform("scale", _scale);
-    program->set_uniform("frames", _frames);
-    program->set_uniform("rand_seed", _seed % (1 << 16));
+        program.set_uniform("cmd", (uint32_t)0);
+    program.set_uniform("zoom", _zoom);
+    program.set_uniform("scale", _scale);
+    program.set_uniform("frames", _frames);
+    program.set_uniform("rand_seed", _seed % (1 << 16));
     // program->set_uniform("stage", (uint32_t)frames % 4);
     _reset = false;
     _clear = false;
     _frames++;
     _seed++;
+
+    glUseProgram(0);
 }

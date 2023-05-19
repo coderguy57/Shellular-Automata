@@ -46,6 +46,16 @@ std::vector<GLSL::IOption *> Shader::get_options() const {
 ComputeShader::ComputeShader(const std::string &path) : Shader(path, GL_COMPUTE_SHADER) {
 }
 
+int ComputeShader::local_size_x() { 
+    return ctx->local_size_x; 
+}
+int ComputeShader::local_size_y() {
+    return ctx->local_size_y;
+}
+int ComputeShader::local_size_z() {
+    return ctx->local_size_z;
+}
+
 bool Shader::compile(GLuint type) {
     _buffer = ctx->to_text();
     auto line_numbers = ctx->line_numbers;

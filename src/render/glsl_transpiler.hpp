@@ -117,6 +117,9 @@ namespace GLSL
         std::vector<Token> tokens;
         std::vector<IOption*> options;
         std::string buffer;
+        int local_size_x = 1;
+        int local_size_y = 1;
+        int local_size_z = 1;
     };
 
     class Exception : public std::exception

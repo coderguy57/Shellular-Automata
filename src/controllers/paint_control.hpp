@@ -1,26 +1,33 @@
 #pragma once
 
 #include <glm/vec3.hpp>
+#include <memory>
+#include <string>
 
 #include "gui_control.hpp"
+#include "render/shader.hpp"
 
 class Program;
+class Data;
 class PaintControl : public GuiControl
 {
 public:
-    PaintControl();
+    PaintControl(std::string shader, std::string texture);
     ~PaintControl();
     void draw() override;
-    void update(Program *program) override;
-    void post_process(Texture *texture) override {};
+    void update(Data& data) override;
+    void post_process(Data& data) override {};
 
 private:
     void draw_options();
 
-    bool _show_options = false;
-    int _cursor_size = 1;
-    bool _cursor_smooth = true;
-    int _layer = 0;
-    glm::vec3 _color = glm::vec3(1, 1, 1);
-    glm::bvec3 _color_mask = glm::vec3(true, true, true);
+    std::string texture_name_;
+    std::unique_ptr<ComputeProgram> program_;
+    glm::vec2 last_cursor_pos_;
+    bool show_options_ = false;
+    int cursor_size_ = 1;
+    bool cursor_smooth_ = true;
+    int layer_ = 0;
+    glm::vec3 color_ = glm::vec3(1, 1, 1);
+    glm::bvec3 color_mask_ = glm::vec3(true, true, true);
 };

@@ -1,14 +1,30 @@
+data:
+  - type: "fragment_shader"
+    name: "frag_shader"
+    path: "slackerz.fs"
+  - type: "texture"
+    name: "data_texture"
+    width: 512
+    height: 512
+    depth: 1
+    format: "GL_RGBA16"
 engine:
   type: FragmentShaderEngine
-  shader: "conservative_rulefactorS.fs"
-  format: "GL_RGBA32F"
-  width: 256
-  height: 256
-  depth: 3
-  steps: 3
+  shader: "frag_shader"
+  texture: "data_texture"
+  steps: 1
 controllers:
-  - type: "Mutation"
+  - type: "InitTexture"
+    shader: "init.cs"
+    texture: "data_texture"
   - type: "Statistics"
-  - type: "Paint"
+    texture: "data_texture"
+  - type: "Recorder"
+    texture: "data_texture"
+  - type: "Mutation"
+    shader: "frag_shader"
 visualizer:
   type: "2DRenderer"
+  input: "data_texture"
+  view_shader: "viewer.fs"
+  output_shader: "basic.fs"

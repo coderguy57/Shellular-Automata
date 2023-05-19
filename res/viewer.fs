@@ -14,9 +14,10 @@ void main() {
     vec4 prev_color = texture(prev_tex, vec3(v_texcoord, 0));
     frag_colour = texture(tex, vec3(v_texcoord, 0));
 
-    frag_colour = mix(prev_color, frag_colour, smoothing);
+    // frag_colour = mix(prev_color, frag_colour, smoothing);
+    // frag_colour = mix(prev_color, frag_colour, smoothing);
 
     // Post processing
     // frag_colour.rgb *= 0.7;
-    frag_colour.a = 1;
+    // frag_colour.a = 1;
 }

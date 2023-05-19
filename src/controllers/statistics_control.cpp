@@ -2,8 +2,9 @@
 
 #include "imgui.h"
 #include "render/shader.hpp"
+#include "data.hpp"
 
-StatisticsControl::StatisticsControl()
+StatisticsControl::StatisticsControl(std::string texture_name)
 {
     _dft_calc_x = new ComputeProgram("fft_x.glsl");
     _dft_calc_y = new ComputeProgram("fft_y.glsl");
@@ -11,6 +12,11 @@ StatisticsControl::StatisticsControl()
     _r_histogram = std::vector<int>(256, 0);
     _g_histogram = std::vector<int>(256, 0);
     _b_histogram = std::vector<int>(256, 0);
+    texture_name_ = texture_name;
+
+    red.clear();
+    blue.clear();
+    green.clear();
 }
 
 StatisticsControl::~StatisticsControl()
@@ -97,9 +103,11 @@ void StatisticsControl::draw()
         draw_dft();
 }
 
-void StatisticsControl::post_process(Texture *texture)
+void StatisticsControl::post_process(Data& data)
 {
-    _area = texture->width * texture->height;
+    auto& texture_data = data.get_element<TextureData>(texture_name_);
+    auto& texture = texture_data.get_texture();
+    _area = texture.width * texture.height;
     if (_show_histogram)
     {
         _histogram_calc->use();
@@ -111,8 +119,8 @@ void StatisticsControl::post_process(Texture *texture)
         blue.set_layout(6);
         Buffer<int> green(empty_data);
         green.set_layout(7);
-        _histogram_calc->set_texture(0, "tex", texture);
-        _histogram_calc->run(texture->width / 8, texture->height / 8, 1);
+        _histogram_calc->set_texture(0, "tex", &texture);
+        _histogram_calc->run(texture.width / 8, texture.height / 8, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
         _r_histogram = red.read();
         _b_histogram = blue.read();
@@ -121,18 +129,18 @@ void StatisticsControl::post_process(Texture *texture)
     if (!_dft_tex)
     {
         TextureOptions options;
-        options.internal_format = texture->options.internal_format;
-        _dft_tex_part = new Texture(texture->width, texture->height, 1, options);
-        _dft_tex = new Texture(texture->width, texture->height, 1, options);
+        options.internal_format = texture.options.internal_format;
+        _dft_tex_part = new Texture(texture.width, texture.height, 1, options);
+        _dft_tex = new Texture(texture.width, texture.height, 1, options);
     }
     if (_show_dft)
     {
         _dft_calc_x->use();
         glMemoryBarrier(GL_ALL_BARRIER_BITS);
-        _dft_calc_x->set_texture(0, "in_tex", texture);
+        _dft_calc_x->set_texture(0, "in_tex", &texture);
         _dft_calc_x->set_texture(1, "out_tex", _dft_tex_part);
         glBindImageTexture(1, _dft_tex_part->gl_tex_num, 0, false, 0, GL_WRITE_ONLY, _dft_tex_part->options.internal_format);
-        _dft_calc_x->run(1, texture->height, 1);
+        _dft_calc_x->run(1, texture.height, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
         _dft_calc_y->use();
@@ -140,7 +148,7 @@ void StatisticsControl::post_process(Texture *texture)
         _dft_calc_y->set_texture(0, "in_tex", _dft_tex_part);
         _dft_calc_y->set_texture(1, "out_tex", _dft_tex);
         glBindImageTexture(1, _dft_tex->gl_tex_num, 0, false, 0, GL_WRITE_ONLY, _dft_tex->options.internal_format);
-        _dft_calc_y->run(texture->width, 1, 1);
+        _dft_calc_y->run(texture.width, 1, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     }
 }

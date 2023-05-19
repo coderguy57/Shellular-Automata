@@ -7,14 +7,15 @@
 
 class Program;
 class Texture;
+class Data;
 class ViewerControl : public GuiControl
 {
 public:
     ViewerControl(Viewer& viewer);
     ~ViewerControl(){};
     void draw() override;
-    void update(Program *program) override{};
-    void post_process(Texture *texture) override{};
+    void update(Data& data) override{};
+    void post_process(Data& data) override{};
 
 private:
     void draw_shader_options();

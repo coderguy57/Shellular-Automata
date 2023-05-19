@@ -2,22 +2,25 @@
 
 #include <vector>
 #include <cstdint>
+#include <string>
 
 #include "gui_control.hpp"
 
 class Program;
+class Data;
 class MutationControl : public GuiControl
 {
 public:
-    MutationControl();
+    MutationControl(std::string fragment_name);
     ~MutationControl();
     void draw() override;
-    void update(Program *program) override;
-    void post_process(Texture *texture) override{};
+    void update(Data& data) override;
+    void post_process(Data& data) override{};
 
 private:
     void draw_mutation_window();
 
+    std::string _fragment_name;
     bool _show_mutation_window;
     std::vector<uint32_t> _mutation;
     std::vector<uint32_t> _mutation_save;

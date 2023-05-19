@@ -8,9 +8,11 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(GLEW)
 
+
 add_library(GLEW "${glew_SOURCE_DIR}/src/glew.c")
 target_include_directories(GLEW PUBLIC "${glew_SOURCE_DIR}/include")
 target_link_libraries(GLEW PUBLIC dependency_OpenGL)
+target_compile_definitions(GLEW PRIVATE GLEW_NO_GLU)
 
 if(BUILD_SHARED_LIBS)
     target_compile_definitions(GLEW PRIVATE GLEW_BUILD)
@@ -19,5 +21,6 @@ else()
 endif()
 
 add_library(dependency_GLEW INTERFACE)
+target_compile_definitions(dependency_GLEW INTERFACE GLEW_NO_GLU)
 target_include_directories(dependency_GLEW SYSTEM INTERFACE $<TARGET_PROPERTY:GLEW,INTERFACE_INCLUDE_DIRECTORIES>)
 target_link_libraries(dependency_GLEW INTERFACE GLEW)

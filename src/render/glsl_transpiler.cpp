@@ -20,9 +20,9 @@ BoolOption::BoolOption(std::string name, std::string label, std::vector<Token>::
 CommandOption::CommandOption(std::string name, std::string label, std::vector<Token>::iterator it, bool compile_constant)
     : IOption(IOption::Type::Command, name, label, it, compile_constant) {}
 
-template class ValueOption<int>;
-template class ValueOption<uint32_t>;
-template class ValueOption<float>;
+template class GLSL::ValueOption<int>;
+template class GLSL::ValueOption<uint32_t>;
+template class GLSL::ValueOption<float>;
 
 template <>
 ValueOption<int>::ValueOption(
@@ -273,98 +273,136 @@ IOption::Type get_option_type(std::vector<Token>::iterator it) {
     }
 }
 
-void Context::parser() {
-    // Im not super happy with how the options work, will have to change this at some point
-    for (auto it = tokens.begin(); it != tokens.end(); it++) {
-        if (it->type != TokenType::COMMAND) {
-            continue;
-        }
+void parse_command(std::vector<GLSL::Token>::iterator it, Context& context) {
+    std::istringstream params(it->data);
+    std::string param;
+    params >> param;
+    if (param != "option") {
+        return;
+    }
 
-        std::istringstream params(it->data);
-        std::string param;
-        params >> param;
-        if (param != "option") {
-            continue;
-        }
+    if ((it + 2)->data != "const" && (it + 2)->data != "uniform") {
+        throw Exception((it + 2), "Option must be followed by either a const or an uniform.");
+    }
+    bool compile_const = false;
+    if ((it + 2)->data == "const") {
+        compile_const = true;
+    }
+    IOption::Type type = get_option_type(it + 3);
+    std::string name = (it + 4)->data;
 
-        if ((it + 2)->data != "const" && (it + 2)->data != "uniform") {
-            throw Exception((it + 2), "Option must be followed by either a const or an uniform.");
-        }
-        bool compile_const = false;
-        if ((it + 2)->data == "const") {
-            compile_const = true;
-        }
-        IOption::Type type = get_option_type(it + 3);
-        std::string name = (it + 4)->data;
+    std::string default_value = "0";
+    if ((it + 5)->type == TokenType::ASSIGN) {
+        default_value = (it + 6)->data;
+    }
 
-        std::string default_value = "0";
-        if ((it + 5)->type == TokenType::ASSIGN) {
-            default_value = (it + 6)->data;
-        }
+    it->type = TokenType::OPTION;
 
-        it->type = TokenType::OPTION;
-
-        bool logarithmic = false;
-        std::string label = name;
-        float min = 0, max = 1;
-        char delimiter;
-        while (params >> delimiter) {
-            if (delimiter == '\"') {
-                std::getline(params, label, '\"');
-            } else if (delimiter == '(') {
-                if (type == IOption::Type::Bool) {
-                    std::getline(params, param, ')');
-                    type = param == "command" ? IOption::Type::Command : type;
-                    continue;
-                } else {
-                    params >> min;
-                    if (params.peek() == ',')
-                        params >> delimiter;
-                    params >> max;
+    bool logarithmic = false;
+    std::string label = name;
+    float min = 0, max = 1;
+    char delimiter;
+    while (params >> delimiter) {
+        if (delimiter == '\"') {
+            std::getline(params, label, '\"');
+        } else if (delimiter == '(') {
+            if (type == IOption::Type::Bool) {
+                std::getline(params, param, ')');
+                type = param == "command" ? IOption::Type::Command : type;
+                continue;
+            } else {
+                params >> min;
+                if (params.peek() == ',')
                     params >> delimiter;
-                    if (params.fail() || delimiter != ')') {
-                        throw Exception(it, "Option range is invalid.");
-                    }
+                params >> max;
+                params >> delimiter;
+                if (params.fail() || delimiter != ')') {
+                    throw Exception(it, "Option range is invalid.");
                 }
-            } else if (delimiter == '=') {
-                params >> default_value;
-            } else if (delimiter == 'e') {
-                std::string param;
-                params >> param;
-                if (param == "xp")
-                    logarithmic = true;
+            }
+        } else if (delimiter == '=') {
+            params >> default_value;
+        } else if (delimiter == 'e') {
+            std::string param;
+            params >> param;
+            if (param == "xp")
+                logarithmic = true;
+        }
+    }
+
+    switch (type) {
+        case IOption::Type::Float:
+            context.options.push_back(new ValueOption<float>(name, label, it, std::stof(default_value), min, max, compile_const, logarithmic));
+            break;
+        case IOption::Type::Int:
+            context.options.push_back(new ValueOption<int>(name, label, it, std::stoi(default_value), min, max, compile_const, logarithmic));
+            break;
+        case IOption::Type::UInt:
+            context.options.push_back(new ValueOption<uint32_t>(name, label, it, std::stoi(default_value), min, max, compile_const, logarithmic));
+            break;
+        case IOption::Type::Bool:
+            context.options.push_back(new BoolOption(name, label, it, default_value == "true", compile_const));
+            break;
+        case IOption::Type::Command:
+            context.options.push_back(new CommandOption(name, label, it, compile_const));
+            break;
+        default:
+            break;
+    }
+
+    context.options.back()->update_option();
+    it = it + 2;
+    // Remove the next tokens if the option is a compile constant
+    // The option will be used instead
+    if (compile_const) {
+        auto start_it = it;
+        while (it != context.tokens.end() && (it->type != TokenType::NEWLINE))
+            it++;
+        it = context.tokens.erase(start_it, it);
+    }
+}
+
+void parse_layout(std::vector<GLSL::Token>::iterator it, Context& context) {
+    it++;
+    if (it->type != TokenType::LPAREN)
+        return;
+    
+    it++;
+    while (it != context.tokens.end() && it->type != TokenType::RPAREN) {
+        if (it->type == TokenType::IDENTIFIER) {
+            int* local_size;
+            if (it->data == "local_size_x")
+                local_size = &context.local_size_x;
+            else if (it->data == "local_size_y")
+                local_size = &context.local_size_y;
+            else if (it->data == "local_size_z")
+                local_size = &context.local_size_z;
+            else {
+                it++;
+                continue;
+            }
+            if ((it+1)->type == TokenType::ASSIGN && (it+2)->type == TokenType::LITERAL) {
+                (*local_size) = std::stoi((it+2)->data);
+                if (*local_size < 1)
+                    throw Exception((it + 2), "local_size must greater or equals to 1");
+                it += 2;
             }
         }
 
-        switch (type) {
-            case IOption::Type::Float:
-                options.push_back(new ValueOption<float>(name, label, it, std::stof(default_value), min, max, compile_const, logarithmic));
-                break;
-            case IOption::Type::Int:
-                options.push_back(new ValueOption<int>(name, label, it, std::stoi(default_value), min, max, compile_const, logarithmic));
-                break;
-            case IOption::Type::UInt:
-                options.push_back(new ValueOption<uint32_t>(name, label, it, std::stoi(default_value), min, max, compile_const, logarithmic));
-                break;
-            case IOption::Type::Bool:
-                options.push_back(new BoolOption(name, label, it, default_value == "true", compile_const));
-                break;
-            case IOption::Type::Command:
-                options.push_back(new CommandOption(name, label, it, compile_const));
-                break;
-            default:
-                break;
+        it++;
+    }
+}
+
+void Context::parser() {
+    // Im not super happy with how the options work, will have to change this at some point
+    for (auto it = tokens.begin(); it != tokens.end(); it++) {
+        if (it->type == TokenType::COMMAND) {
+            parse_command(it, *this);
+            continue;
         }
 
-        options.back()->update_option();
-        it = it + 2;
-        // Remove the next tokens if the option is a compile constant
-        // The option will be used instead
-        if (compile_const) {
-            auto start_it = it;
-            while (it != tokens.end() && (it->type != TokenType::NEWLINE))
-                it++;
-            it = tokens.erase(start_it, it);
+        if (it->type == TokenType::IDENTIFIER && it->data == "layout") {
+            parse_layout(it, *this);
         }
     }
 }

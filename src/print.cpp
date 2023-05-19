@@ -143,6 +143,7 @@ void GLAPIENTRY GLDebugMessageCallback(GLenum source, GLenum type, GLuint id,
 
         case GL_DEBUG_SEVERITY_MEDIUM:
         _severity = "MEDIUM";
+        return;
         break;
 
         case GL_DEBUG_SEVERITY_LOW:
@@ -151,6 +152,7 @@ void GLAPIENTRY GLDebugMessageCallback(GLenum source, GLenum type, GLuint id,
 
         case GL_DEBUG_SEVERITY_NOTIFICATION:
         _severity = "NOTIFICATION";
+        return;
         break;
 
         default:
@@ -158,7 +160,7 @@ void GLAPIENTRY GLDebugMessageCallback(GLenum source, GLenum type, GLuint id,
         break;
     }
 
-	return;
+	// return;
 	printf("%d: %s of %s severity, raised from %s: %s\n",
             id, _type.c_str(), _severity.c_str(), _source.c_str(), msg);
 }

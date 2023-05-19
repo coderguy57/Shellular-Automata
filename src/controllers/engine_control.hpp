@@ -1,27 +1,28 @@
 #pragma once
 
 #include "gui_control.hpp"
-#include "../engine.hpp"
+#include "engines/fragment_shader_engine.hpp"
 #include <string>
 #include <vector>
 
 class Program;
 class Texture;
+class Data;
 class EngineControl : public GuiControl
 {
 public:
-    EngineControl(Engine& engine);
+    EngineControl(FragmentShaderEngine& engine);
     ~EngineControl(){};
     void draw() override;
-    void update(Program *program) override;
-    void post_process(Texture *texture) override{};
+    void update(Data& data) override;
+    void post_process(Data& data) override{};
 
 private:
     void draw_change_size();
     void draw_change_shader();
     void draw_shader_options();
 
-    Engine& _engine;
+    FragmentShaderEngine& _engine;
 
     bool _step = false;
 
