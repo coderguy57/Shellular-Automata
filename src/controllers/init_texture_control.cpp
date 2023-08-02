@@ -33,7 +33,7 @@ void InitTextureControl::update(Data& data)
 {
     if (init_) {
         program_->use();
-        GLuint memory_barrier_bits;
+        GLuint memory_barrier_bits = 0;
         auto& data_element = data.get_element<TextureData>(texture_name_);
         auto& texture = data_element.get_texture();
         data_element.bind(0);
