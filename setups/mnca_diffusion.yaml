@@ -7,14 +7,14 @@ data:
     path: "conservative_NN.fs"
   - type: "texture"
     name: "data_texture"
-    width: 512
-    height: 512
+    width: 1024
+    height: 1024
     depth: 3
     format: "GL_RGBA32F"
   - type: "texture"
     name: "temp_texture"
-    width: 512
-    height: 512
+    width: 1024
+    height: 1024
     format: "GL_RGBA32F"
 engine:
   type: ComputeShaderEngine
