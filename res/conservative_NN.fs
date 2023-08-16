@@ -170,15 +170,13 @@ ConvData nbhd( vec2 r, sampler2DArray tx, int layer ) {
 vec4 bitring(ConvData[MAX_RADIUS] rings, uint bits, uint of) {
 	vec4 sum = vec4(0.0, 0.0, 0.0, 0.0);
 	float tot = 0.;
-	// for(uint i = 0u; i < MAX_RADIUS; i++) {
-	// 	if(u32_upk(bits, 1u, i + of) == 1u) {
-	// for(uint i = 0u; i < MAX_RADIUS; i++) {
-	// 	if(u32_upk(bits, 1u, i + of) == 1u) {
-		uint i = u32_upk(bits, 4u, 0) % MAX_RADIUS;
+	for(uint i = 0u; i < MAX_RADIUS; i++) {
+		if(u32_upk(bits, 1u, i + of) == 1u) {
+		// uint i = u32_upk(bits, 4u, 0) % MAX_RADIUS;
 			sum += rings[i].value;
 			tot += rings[i].total;
-		// }
-	// }
+		}
+	}
 	return sum / tot;
 } // TODO
 

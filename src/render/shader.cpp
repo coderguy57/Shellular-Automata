@@ -139,8 +139,10 @@ ComputeProgram::ComputeProgram(const std::string &compute)
     GLint r = 0;
     glGetProgramiv(_id, GL_LINK_STATUS, &r);
     if (!r) {
-        std::string error_info;
-        glGetProgramInfoLog(_id, GL_INFO_LOG_LENGTH, NULL, &error_info[0]);
+        GLint log_length = 0;
+        glGetProgramiv(_id, GL_INFO_LOG_LENGTH, &log_length);
+        std::string error_info(log_length, ' '); // Resize the string to accommodate the log
+        glGetProgramInfoLog(_id, log_length, NULL, &error_info[0]);
         print_error("Program error %s", error_info.c_str());
     }
 }
