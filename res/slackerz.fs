@@ -340,7 +340,7 @@ void main() {
 	res_c[3] 	= 1.0;
 
 	out_col 	= res_c;
-
+	// out_col.rgb = out_col.gbr;
 }
 
 

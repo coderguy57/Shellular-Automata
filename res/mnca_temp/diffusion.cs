@@ -1,8 +1,8 @@
 #version 460
 
-layout(rgba32f, binding = 0) uniform image2D inputImage;
-layout(rgba32f, binding = 1) uniform image2D defaultImage;
-layout(rgba32f, binding = 2) uniform image2D outputImage;
+layout(rgba32f, binding = 0) uniform image2DArray inputImage;
+layout(rgba32f, binding = 1) uniform image2DArray defaultImage;
+layout(rgba32f, binding = 2) uniform image2DArray outputImage;
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
@@ -11,10 +11,10 @@ vec4 get_color(int x, int y, layout (rgba32f) image2D sampler) {
 
   ivec2 coord = ivec2(gl_GlobalInvocationID.xy) + ivec2(x, y);
   coord = coord % image_size;
-  return (imageLoad(sampler, coord));
+  return imageLoad(sampler, coord);
 }
 
-const vec4 diffusion_coefficient = vec4(1);
+const vec4 diffusion_coefficient = vec4(0, 0, 0.1, 0);
 void main() {
   vec4 density = get_color(0, 0, defaultImage);
   vec4 left_density = get_color(-1, 0, inputImage);

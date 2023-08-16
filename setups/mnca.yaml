@@ -4,18 +4,18 @@ data:
     path: "fluidMNCA/init_mnca.fs"
   - type: "fragment_shader"
     name: "frag_shader"
-    path: "MNCA_NN.fs"
+    path: "conservative_NN.fs"
   - type: "texture"
     name: "data_texture"
     width: 512
     height: 512
-    depth: 1
-    format: "GL_RGBA16"
+    depth: 3
+    format: "GL_RGBA32F"
 engine:
   type: FragmentShaderEngine
   shader: "frag_shader"
   texture: "data_texture"
-  steps: 1
+  steps: 3
 controllers:
   - type: "InitTexture"
     shader: "init_mnca"

@@ -14,6 +14,7 @@ uint32_t u32_upk(uint32_t u32, uint32_t bts, uint32_t off)
 MutationControl::MutationControl(std::string fragment_name)
 : _fragment_name{fragment_name}
 {
+    srand(time(NULL));
     _seed = time(NULL);
     for (size_t i = 0; i < 64; i++)
     {
@@ -261,7 +262,7 @@ void MutationControl::draw_mutation_window()
 
     ImGui::Text("%d", _frames);
 
-    ImGui::SliderFloat("Scale", &_scale, 0.0f, 200.0f);
+    ImGui::SliderFloat("Scale", &_scale, 0.0f, 200.0f, "%.3f");
     ImGui::SliderFloat("Zoom", &_zoom, 0.0f, 1.0f);
     ImGui::SliderInt("Mode", &_mode, 0, 2);
     ImGui::SliderInt("Chance", &_mutation_chance, 10, 500);
@@ -336,11 +337,11 @@ void MutationControl::draw_mutation_window()
 
 void MutationControl::draw()
 {
-    if (ImGui::IsKeyPressed('Q'))
-    {
-        _reset = true;
-        _frames = 0;
-    }
+    // if (ImGui::IsKeyPressed('Q'))
+    // {
+    //     _reset = true;
+    //     _frames = 0;
+    // }
     if (ImGui::IsKeyPressed('P'))
     {
         _clear = true;
@@ -373,12 +374,12 @@ void MutationControl::draw()
                 _show_mutation_window = !_show_mutation_window;
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Reset", "Q"))
-            {
-                _reset = true;
-                _frames = 0;
-            }
-            ImGui::Separator();
+            // if (ImGui::MenuItem("Reset", "Q"))
+            // {
+            //     _reset = true;
+            //     _frames = 0;
+            // }
+            // ImGui::Separator();
             if (ImGui::MenuItem("Clear", "P"))
             {
                 _clear = true;

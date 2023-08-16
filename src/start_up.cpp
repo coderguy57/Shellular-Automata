@@ -5,8 +5,8 @@
 
 int main(int, char **)
 {
-    Window window{512, 512};
-    auto simulation = load_simulation_setup("fluid.yaml");
+    Window window{1024, 800};
+    auto simulation = load_simulation_setup("mnca_diffusion.yaml");
     window.run(std::move(simulation));
     // Engine *e = new Engine(1024, 512, 2, "slack_layer.fs", GL_RGBA16);
     // Engine *e = new Engine(512, 512, 1, "slackerz.fs", GL_RGBA16);

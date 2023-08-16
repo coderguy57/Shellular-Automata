@@ -85,7 +85,6 @@ void Window::run(SimulationSetup simulation)
     std::atomic<bool> is_paused(false);
     std::string new_simulation_setup = "";
 
-    // simulation.add_controller_front(std::make_unique<EngineControl>(simulation.engine()));
     simulation.add_controller_front(std::make_unique<ViewerControl>(simulation.viewer()));
     simulation.add_controller_front(std::make_unique<WindowControl>(is_quit, is_paused, new_simulation_setup));
 
@@ -156,7 +155,8 @@ void Window::run(SimulationSetup simulation)
             // Rendering
             int display_w, display_h;
             glfwGetFramebufferSize(_window, &display_w, &display_h);
-            simulation.viewer().view(display_w, display_h, simulation.data());
+                simulation.viewer().view(display_w, display_h, simulation.data());
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
             glfwSwapBuffers(_window);
