@@ -84,13 +84,14 @@ void FragmentShaderEngine::step(Data& data)
     auto& program_data = data.get_element<FragmentProgramData>(fragment_name_);
     auto& program = program_data.get_program();
     auto& texture_data = data.get_element<TextureData>(texture_name_);
-    auto& texture = texture_data.get_texture();
-    auto& last_texture = texture_data.get_last_texture();
-    glViewport(0, 0, texture.width, texture.height);
+    glViewport(0, 0, texture_data.get_texture().width, texture_data.get_texture().height);
     program.use();
     fbo_->use();
     for (uint32_t stage = 0; stage < stages_; stage++)
     {
+        auto& texture = texture_data.get_texture();
+        auto& last_texture = texture_data.get_last_texture();
+
         std::vector<GLenum> buffers;
         for (size_t i = 0; i < texture.depth; i++)
         {

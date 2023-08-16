@@ -145,7 +145,7 @@ ConvData nbhd( vec2 r, sampler2DArray tx, int layer ) {
 	for(float j = 0.0; j <= r[0]; j++) {
 		vec2 bound = sqrt(max(vec2(0),r2 - vec2(j*j)));
 		for(float i = floor(bound[1])+1; i <= bound[0]; i++) {
-			if (stage == CALC_FLOW) {
+			if (stage % 3 == CALC_FLOW) {
 				total += 4.0;
 				value += get_flow( ivec2( i, j), tx, local_demand );
 				value += get_flow( ivec2( j,-i), tx, local_demand );
@@ -280,15 +280,15 @@ void main() {
 //	NH Rings
 	ConvData[MAX_RADIUS] nh_rings_c;
 	ConvData nbh = {vec4(0.), 0.};
-	if(stage == GET_DEMAND) {
+	if(stage % 3 == GET_DEMAND) {
 		for(uint i = 0u; i < MAX_RADIUS; i++) {
 			nh_rings_c[i] = nbhd(vec2(i + 1u, i), tex, 0);
 		}
-	} else if(stage == PUSH_DEMAND) {
+	} else if(stage % 3 == PUSH_DEMAND) {
 		nbh = nbhd(vec2(PUSH_RAD, 0), tex, 3);
-	} else if(stage == GET_TOTAL_DEMAND) {
+	} else if(stage % 3 == GET_TOTAL_DEMAND) {
 		nbh = nbhd(vec2(PULL_RAD, 0), tex, 1);
-	} else if (stage == CALC_FLOW) {
+	} else if (stage % 3 == CALC_FLOW) {
 		nbh = nbhd(vec2(PULL_RAD, 0), tex, 0);
 	}
 
@@ -304,7 +304,7 @@ void main() {
 	// vec4 push = gdv(ivec2(0, 0), tex, 3);
 
 	float area = 0.;
-	if(stage == GET_DEMAND) {
+	if(stage % 3 == GET_DEMAND) {
 		demand = vec4(0);
 		vec4 z = vec4(0);
 		vec4[24/MNCAS_STEPS] smnca_res;
@@ -356,7 +356,7 @@ void main() {
 		}
 		demand /= area;
 	}
-	if(stage == PUSH_DEMAND) {
+	if(stage % 3 == PUSH_DEMAND) {
 		// float area = ((2 * PULL_RAD + 1) * (2 * PULL_RAD + 1));
 		// float area = res_v[2];
 		// float sum = 0.;
@@ -366,12 +366,12 @@ void main() {
 		// res_v[1] = min(res_v[1], 1. - res_v[0]);
 		// res_v[1] = res_v[1] / area;
 	}
-	if(stage == GET_TOTAL_DEMAND) {
+	if(stage % 3 == GET_TOTAL_DEMAND) {
 		vec4 sum = demand;
 		sum += nbh.value;
 		total_demand = sum;
 	}
-	if(stage == CALC_FLOW) {
+	if(stage % 3 == CALC_FLOW) {
 		vec4 local_demand = gdv(ivec2(0, 0), tex, 1);
 		vec4 sum = get_flow(ivec2(0, 0), tex, local_demand);
 		sum += nbh.value;
@@ -383,6 +383,8 @@ void main() {
 		area = ((2 * PULL_RAD + 1) * (2 * PULL_RAD + 1));
 		demand *= area;
 		total_demand = vec4(0.);
+
+		// res_c.rgb = res_c.grb;
 	}
 
 //	----    ----    ----    ----    ----    ----    ----    ----
@@ -404,7 +406,7 @@ void main() {
 	if(mlr.x != 0u) {
 		if (paint_layer == 0) {
 			res_c = place(res_c, vec4(paint_color, 1.), paint_size, mxy); }
-		if (paint_layer == 1 && stage == GET_DEMAND) {
+		if (paint_layer == 1 && stage % 3 == GET_DEMAND) {
 			vec4 put_demand = min(vec4(paint_color, 1.), 1. - res_c);
 			demand = place(demand, put_demand/area, paint_size, mxy); }
 	}

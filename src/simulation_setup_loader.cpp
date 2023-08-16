@@ -8,6 +8,8 @@
 #include "controllers/paint_control.hpp"
 #include "controllers/recorder_control.hpp"
 #include "controllers/init_texture_control.hpp"
+#include "controllers/engine_control.hpp"
+#include "controllers/shader_control.hpp"
 #include "simulation_setup.hpp"
 #include "engines/compute_shader_engine.hpp"
 #include "engines/fragment_shader_engine.hpp"
@@ -43,10 +45,13 @@ SimulationSetup load_simulation_setup(std::string const &path)
         {
             int width = data_element["width"].as<int>();
             int height = data_element["height"].as<int>();
+            int depth = 1;
+            if (data_element["depth"])
+                depth = data_element["depth"].as<int>();
             std::string format_name = data_element["format"].as<std::string>();
             TextureOptions options;
             options.internal_format = get_format(format_name);
-            auto texture_data = std::make_unique<TextureData>(width, height, options);
+            auto texture_data = std::make_unique<TextureData>(width, height, depth, options);
             data.add_element(name, std::move(texture_data));
         }
         else if (type == "fragment_shader") {
@@ -65,50 +70,64 @@ SimulationSetup load_simulation_setup(std::string const &path)
     auto engine_node = config["engine"];
     auto test = engine_node["type"];
     std::string engine_name = engine_node["type"].as<std::string>();
+    std::string fragment_shader_name;
     if (engine_name == "FragmentShaderEngine")
     {
         int steps = engine_node["steps"].as<int>();
-        std::string shader_name = engine_node["shader"].as<std::string>();
+        fragment_shader_name = engine_node["shader"].as<std::string>();
         std::string texture_name = engine_node["texture"].as<std::string>();
-        engine = std::make_unique<FragmentShaderEngine>(shader_name, texture_name, steps);
+        engine = std::make_unique<FragmentShaderEngine>(fragment_shader_name, texture_name, steps);
     }
     else if (engine_name == "ComputeShaderEngine")
     {
         std::unique_ptr<ComputeShaderEngine> compute_engine = std::make_unique<ComputeShaderEngine>();
         for (auto step : engine_node["steps"])
         {
-            std::string compute_shader = step["name"].as<std::string>();
-            YAML::Node inputs_node = step["inputs"];
-            std::vector<ComputeShaderInput> inputs;
-            for(YAML::const_iterator it=inputs_node.begin();it!=inputs_node.end();++it) {
-                GLuint key = it->first.as<GLuint>();
-                std::string name = it->second.as<std::string>();
-                inputs.push_back({key, name});
-            }
-            YAML::Node outputs_node = step["outputs"];
-            std::vector<ComputeShaderInput> outputs;
-            for(YAML::const_iterator it=outputs_node.begin();it!=outputs_node.end();++it) {
-                GLuint key = it->first.as<GLuint>();
-                std::string name = it->second.as<std::string>();
-                outputs.push_back({key, name});
-            }
-            ComputeShaderStep compute_shader_step(compute_shader, inputs, outputs);
-            if (step["work_groups"]) {
-                std::vector<GLuint> work_groups = step["work_groups"].as<std::vector<GLuint>>();
-                if (work_groups.size() != 3) {
-                    throw "Unsupporeted ComputeShaderEngine step work groups\n";
+            std::string shader_name = step["name"].as<std::string>();
+            if(shader_name.compare(shader_name.length() - 3, 3, ".cs") == 0) {
+                // Compute shader
+                YAML::Node inputs_node = step["inputs"];
+                std::vector<ComputeShaderInput> inputs;
+                for(YAML::const_iterator it=inputs_node.begin();it!=inputs_node.end();++it) {
+                    GLuint key = it->first.as<GLuint>();
+                    std::string name = it->second.as<std::string>();
+                    inputs.push_back({key, name});
                 }
-                compute_shader_step.set_work_groups(work_groups[0], work_groups[1], work_groups[2]);
-            } else {
-                std::string work_group_data = step["work_group_data"].as<std::string>();
-                compute_shader_step.set_data_work_group(work_group_data);
-            }
+                YAML::Node outputs_node = step["outputs"];
+                std::vector<ComputeShaderInput> outputs;
+                for(YAML::const_iterator it=outputs_node.begin();it!=outputs_node.end();++it) {
+                    GLuint key = it->first.as<GLuint>();
+                    std::string name = it->second.as<std::string>();
+                    outputs.push_back({key, name});
+                }
+                auto compute_shader_step = std::make_unique<ComputeShaderStep>(shader_name, inputs, outputs);
+                if (step["work_groups"]) {
+                    std::vector<GLuint> work_groups = step["work_groups"].as<std::vector<GLuint>>();
+                    if (work_groups.size() != 3) {
+                        throw "Unsupporeted ComputeShaderEngine step work groups\n";
+                    }
+                    compute_shader_step->set_work_groups(work_groups[0], work_groups[1], work_groups[2]);
+                } else {
+                    std::string work_group_data = step["work_group_data"].as<std::string>();
+                    compute_shader_step->set_data_work_group(work_group_data);
+                }
 
-            if (step["iterations"]) {
-                int iterations = step["iterations"].as<int>();
-                compute_shader_step.set_iterations(iterations);
+                if (step["iterations"]) {
+                    int iterations = step["iterations"].as<int>();
+                    compute_shader_step->set_iterations(iterations);
+                }
+                compute_engine->add_step(std::move(compute_shader_step));
+
+            } else {
+                // Fragment shader
+                std::vector<FragmentShaderInput> inputs;
+                std::string output = step["output"].as<std::string>();
+                int stages = 1;
+                if (step["stages"])
+                    stages = step["stages"].as<int>();
+                auto fragment_shader_step = std::make_unique<FragmentShaderStep>(shader_name, inputs, output, stages);
+                compute_engine->add_step(std::move(fragment_shader_step));
             }
-            compute_engine->add_step(std::move(compute_shader_step));
         }
         engine = std::move(compute_engine);
     }
@@ -140,6 +159,10 @@ SimulationSetup load_simulation_setup(std::string const &path)
     SimulationSetup simulation_setup(std::move(engine), std::move(viewer), std::move(data));
 
     // Create the options controllers
+    if (engine_name == "FragmentShaderEngine") {
+        auto fragment_engine = dynamic_cast<FragmentShaderEngine*>(engine.get());
+        simulation_setup.add_controller_back(std::make_unique<EngineControl>(*fragment_engine, fragment_shader_name));
+    }
     for (auto controller_node : config["controllers"])
     {
         std::string controller_name = controller_node["type"].as<std::string>();
@@ -169,6 +192,10 @@ SimulationSetup load_simulation_setup(std::string const &path)
             std::string shader_name = controller_node["shader"].as<std::string>();
             std::string texture_name = controller_node["texture"].as<std::string>();
             simulation_setup.add_controller_back(std::make_unique<InitTextureControl>(shader_name, texture_name));
+        }
+        else if (controller_name == "Shader")
+        {
+            simulation_setup.add_controller_back(std::make_unique<ShaderControl>());
         }
         else
         {

@@ -53,7 +53,7 @@ void StatisticsControl::draw_histogram()
     ImGui::Begin("Histograms", &_show_histogram,
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
     ImGui::PlotLines("", &format_data(_r_histogram)[0], 256, 0, "Red");
-    ImGui::Text("Total: %2.3f", total_color(_r_histogram));
+    ImGui::Text("Total: %2.3f", (double)_r_histogram[0]);
     ImGui::Text("Entropy: %2.3f", entropy(_r_histogram));
     ImGui::PlotLines("", &format_data(_g_histogram)[0], 256, 0, "Green");
     ImGui::Text("Total: %2.3f", total_color(_g_histogram));
@@ -70,7 +70,7 @@ void StatisticsControl::draw_dft()
                  ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse);
     ImGui::BeginChild("GameRender");
     ImVec2 img_size = ImGui::GetWindowSize();
-    ImGui::Image((ImTextureID)_dft_tex->gl_tex_num, img_size, ImVec2(0, 1), ImVec2(1, 0));
+    ImGui::Image((ImTextureID)static_cast<size_t>(_dft_tex->gl_tex_num), img_size, ImVec2(0, 1), ImVec2(1, 0));
     ImGui::EndChild();
     ImGui::End();
 }

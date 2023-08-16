@@ -8,6 +8,8 @@
 #include "render/shader.hpp"
 
 class Program;
+class RenderSurface;
+class Framebuffer;
 class Data;
 class PaintControl : public GuiControl
 {
@@ -22,8 +24,12 @@ private:
     void draw_options();
 
     std::string texture_name_;
-    std::unique_ptr<ComputeProgram> program_;
+    std::unique_ptr<ComputeProgram> compute_program_;
+    std::unique_ptr<Framebuffer> fbo_;
+    std::unique_ptr<RenderSurface> surface_;
+    std::string fragment_name_;
     glm::vec2 last_cursor_pos_;
+
     bool show_options_ = false;
     int cursor_size_ = 1;
     bool cursor_smooth_ = true;

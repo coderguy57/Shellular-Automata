@@ -11,7 +11,7 @@ class Data;
 class EngineControl : public GuiControl
 {
 public:
-    EngineControl(FragmentShaderEngine& engine);
+    EngineControl(FragmentShaderEngine& engine, std::string frag_name);
     ~EngineControl(){};
     void draw() override;
     void update(Data& data) override;
@@ -23,6 +23,8 @@ private:
     void draw_shader_options();
 
     FragmentShaderEngine& _engine;
+    FragmentProgram* program; 
+    std::string _frag_name;
 
     bool _step = false;
 

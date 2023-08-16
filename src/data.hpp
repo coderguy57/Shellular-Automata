@@ -19,7 +19,7 @@ public:
 };
 class TextureData : public DataElement {
 public:
-    TextureData(uint32_t width, uint32_t height, TextureOptions options = default_options);
+    TextureData(uint32_t width, uint32_t height, uint32_t depth, TextureOptions options = default_options);
     void bind(GLuint layout) override;
     void bind_out(GLuint layout) override;
     GLuint memory_barrier_bits() override {
@@ -58,6 +58,14 @@ public:
     void add_element(std::string name, std::unique_ptr<DataElement> data_element) {
         elements.insert({name, std::move(data_element)});
     };
+    template <typename T, typename TFunc>
+    void for_each_element(const TFunc& func) {
+        for (auto& key_val : elements) {
+            auto element = dynamic_cast<T*>(key_val.second.get());
+            if (element)
+                func(key_val.first, *element);
+        }
+    }
     template <typename T>
     T& get_element(std::string name) {
         auto it = elements.find(name);

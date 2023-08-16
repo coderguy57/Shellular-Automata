@@ -1,0 +1,59 @@
+data:
+  - type: "fragment_shader"
+    name: "init_mnca"
+    path: "fluidMNCA/init_mnca.fs"
+  - type: "fragment_shader"
+    name: "frag_shader"
+    path: "conservative_NN.fs"
+  - type: "texture"
+    name: "data_texture"
+    width: 512
+    height: 512
+    depth: 3
+    format: "GL_RGBA32F"
+  - type: "texture"
+    name: "temp_texture"
+    width: 512
+    height: 512
+    format: "GL_RGBA32F"
+engine:
+  type: ComputeShaderEngine
+  steps:
+    - name: "frag_shader"
+      output: "data_texture"
+      stages: 3
+    - name: "fluid_sim/copy.cs"
+      work_group_data: "data_texture"
+      inputs:
+        0: "data_texture"
+      outputs:
+        1: "temp_texture"
+    - name: "fluid_sim/diffusion.cs"
+      iterations: 20
+      work_group_data: "data_texture"
+      inputs:
+        0: "data_texture"
+        1: "temp_texture"
+      outputs:
+        2: "data_texture"
+# engine:
+#   type: FragmentShaderEngine
+#   shader: "frag_shader"
+#   texture: "data_texture"
+#   steps: 3
+controllers:
+  - type: "InitTexture"
+    shader: "init_mnca"
+    texture: "data_texture"
+  - type: "Statistics"
+    texture: "data_texture"
+  - type: "Recorder"
+    texture: "data_texture"
+  - type: "Mutation"
+    shader: "frag_shader"
+  - type: "Shader"
+visualizer:
+  type: "2DRenderer"
+  input: "data_texture"
+  view_shader: "viewer.fs"
+  output_shader: "basic.fs"

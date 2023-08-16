@@ -13,7 +13,7 @@ void main()
     vec3 color = texelFetch(tex, ivec3(coord, 0), 0).xyz;
     ivec3 index = ivec3(color * 255.999);
 
-    atomicAdd(red[index.r], 1);
+    atomicAdd(red[0], index.r);
     atomicAdd(blue[index.b], 1);
     atomicAdd(green[index.g], 1);
 

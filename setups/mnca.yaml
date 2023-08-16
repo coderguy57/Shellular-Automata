@@ -1,0 +1,34 @@
+data:
+  - type: "fragment_shader"
+    name: "init_mnca"
+    path: "fluidMNCA/init_mnca.fs"
+  - type: "fragment_shader"
+    name: "frag_shader"
+    path: "conservative_NN.fs"
+  - type: "texture"
+    name: "data_texture"
+    width: 512
+    height: 512
+    depth: 3
+    format: "GL_RGBA32F"
+engine:
+  type: FragmentShaderEngine
+  shader: "frag_shader"
+  texture: "data_texture"
+  steps: 3
+controllers:
+  - type: "InitTexture"
+    shader: "init_mnca"
+    texture: "data_texture"
+  - type: "Statistics"
+    texture: "data_texture"
+  - type: "Recorder"
+    texture: "data_texture"
+  - type: "Mutation"
+    shader: "frag_shader"
+  - type: "Shader"
+visualizer:
+  type: "2DRenderer"
+  input: "data_texture"
+  view_shader: "viewer.fs"
+  output_shader: "basic.fs"

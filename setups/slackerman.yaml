@@ -1,7 +1,10 @@
 data:
   - type: "fragment_shader"
+    name: "init_mnca"
+    path: "fluidMNCA/init_mnca.fs"
+  - type: "fragment_shader"
     name: "frag_shader"
-    path: "slackerz.fs"
+    path: "MNCA_NN.fs"
   - type: "texture"
     name: "data_texture"
     width: 512
@@ -15,7 +18,7 @@ engine:
   steps: 1
 controllers:
   - type: "InitTexture"
-    shader: "init.cs"
+    shader: "init_mnca"
     texture: "data_texture"
   - type: "Statistics"
     texture: "data_texture"
@@ -23,6 +26,7 @@ controllers:
     texture: "data_texture"
   - type: "Mutation"
     shader: "frag_shader"
+  - type: "Shader"
 visualizer:
   type: "2DRenderer"
   input: "data_texture"

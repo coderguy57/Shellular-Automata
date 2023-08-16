@@ -181,8 +181,10 @@ FragmentProgram::FragmentProgram(const std::string &vertex, const std::string &f
     GLint r = 0;
     glGetProgramiv(_id, GL_LINK_STATUS, &r);
     if (!r) {
-        std::string error_info;
-        glGetProgramInfoLog(_id, GL_INFO_LOG_LENGTH, NULL, &error_info[0]);
+        GLint log_length = 0;
+        glGetProgramiv(_id, GL_INFO_LOG_LENGTH, &log_length);
+        std::string error_info(log_length, ' '); // Resize the string to accommodate the log
+        glGetProgramInfoLog(_id, log_length, NULL, &error_info[0]);
         print_error("Program error %s", error_info.c_str());
     } else {
         _success = true;
@@ -213,16 +215,16 @@ void FragmentProgram::use() const {
             auto opt = static_cast<GLSL::ValueOption<float>*>(option);
             set_uniform(opt->name, opt->value);
         } else if (option->type == GLSL::IOption::Type::Int) {
-            auto opt = static_cast<GLSL::ValueOption<float>*>(option);
+            auto opt = static_cast<GLSL::ValueOption<int>*>(option);
             set_uniform(opt->name, opt->value);
         } else if (option->type == GLSL::IOption::Type::UInt) {
-            auto opt = static_cast<GLSL::ValueOption<float>*>(option);
+            auto opt = static_cast<GLSL::ValueOption<uint32_t>*>(option);
             set_uniform(opt->name, opt->value);
         } else if (option->type == GLSL::IOption::Type::Bool) {
-            auto opt = static_cast<GLSL::ValueOption<float>*>(option);
+            auto opt = static_cast<GLSL::ValueOption<bool>*>(option);
             set_uniform(opt->name, opt->value);
         } else if (option->type == GLSL::IOption::Type::Command) {
-            auto opt = static_cast<GLSL::ValueOption<float>*>(option);
+            auto opt = static_cast<GLSL::ValueOption<bool>*>(option);
             set_uniform(opt->name, opt->value);
             opt->value = false;
         }
@@ -262,7 +264,7 @@ void Program::set_uniform(const std::string &name, uint32_t value) const {
 }
 
 void Program::set_uniform(const std::string &name, bool value1, bool value2) const {
-    glUniform2i(glGetUniformLocation(_id, name.c_str()), value1, value2);
+    glUniform2i(glGetUniformLocation(_id, name.c_str()), value1 ? 1 : 0, static_cast<int>(value2));
 }
 
 void Program::set_uniform(const std::string &name, int size, const uint32_t *vector) const {

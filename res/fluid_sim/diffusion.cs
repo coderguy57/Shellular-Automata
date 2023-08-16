@@ -14,7 +14,7 @@ vec4 get_color(int x, int y, layout (rgba32f) image2D sampler) {
   return (imageLoad(sampler, coord));
 }
 
-const vec4 diffusion_coefficient = vec4(0, 0, 0.1, 0);
+const vec4 diffusion_coefficient = vec4(1);
 void main() {
   vec4 density = get_color(0, 0, defaultImage);
   vec4 left_density = get_color(-1, 0, inputImage);
