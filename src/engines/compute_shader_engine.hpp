@@ -10,6 +10,8 @@
 #include "render/texture.hpp"
 #include "render/framebuffer.hpp"
 #include "render/renderSurface.hpp"
+#include "render/glsl_transpiler.hpp"
+#include "render/shader.hpp"
 
 class Texture;
 class ComputeProgram;
@@ -19,8 +21,9 @@ struct FragmentShaderInput
     std::string shader_name;
     std::string data_name;
 };
-struct Step {
-    virtual ~Step() {};
+struct Step
+{
+    virtual ~Step(){};
     virtual void do_step(Data &data) = 0;
 };
 struct FragmentShaderStep : public Step
@@ -41,6 +44,7 @@ private:
 
 struct ComputeShaderInput
 {
+    ComputeShaderInput(GLuint layout_, std::string name_) : layout{layout_}, name{name_} {}
     GLuint layout;
     std::string name;
 };
@@ -49,16 +53,56 @@ class ComputeShaderStep : public Step
 public:
     ComputeShaderStep(std::string compute_path, std::vector<ComputeShaderInput> inputs, std::vector<ComputeShaderInput> outputs);
     void do_step(Data &data) override;
-    void set_iterations(int iterations) {
+    ComputeShaderStep* set_iterations(int iterations)
+    {
         iterations_ = iterations;
+        return this;
     };
-    void set_work_groups(int x, int y, int z) {
+    ComputeShaderStep* set_work_groups(int x, int y, int z)
+    {
         work_group_x_ = x;
         work_group_y_ = y;
         work_group_z_ = z;
+        data_work_group_ = "";
+        return this;
     };
-    void set_data_work_group(std::string data_work_group) {
+    ComputeShaderStep* set_data_work_group(std::string data_work_group)
+    {
         data_work_group_ = data_work_group;
+        return this;
+    };
+    ComputeShaderStep* set_option(std::string name, bool value)
+    {
+        const auto &options = step_->get_options();
+        auto it = std::find_if(options.begin(), options.end(),
+                               [&name](GLSL::IOption *option)
+                               { return option->label == name; });
+        if (it != std::end(options)) {
+            auto opt = static_cast<GLSL::BoolOption*>(*it);
+            if (opt) {
+                // if (opt->value != value)
+                opt->changed = true;
+                opt->value = value;
+            }
+        }
+        return this;
+    };
+    template <typename T>
+    ComputeShaderStep* set_option(std::string name, T value)
+    {
+        const auto &options = step_->get_options();
+        auto it = std::find_if(options.begin(), options.end(),
+                               [&name](GLSL::IOption *option)
+                               { return option->label == name; });
+        if (it != std::end(options)) {
+            auto opt = static_cast<GLSL::ValueOption<T> *>(*it);
+            if (opt) {
+                // if (opt->value != value)
+                opt->changed = true;
+                opt->value = value;
+            }
+        }
+        return this;
     };
 
 private:
@@ -81,6 +125,14 @@ public:
     void add_step(std::unique_ptr<Step> step)
     {
         steps.push_back(std::move(step));
+    }
+    template <typename T, typename... Args>
+    T *add_step(Args &&...args)
+    {
+        auto step = std::make_unique<T>(std::forward<Args>(args)...);
+        auto step_ptr = step.get();
+        steps.push_back(std::move(step));
+        return step_ptr;
     }
 
 private:

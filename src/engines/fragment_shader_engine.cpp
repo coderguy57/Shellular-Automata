@@ -99,7 +99,7 @@ void FragmentShaderEngine::step(Data& data)
         }
 
         glDrawBuffers(texture.depth, &buffers[0]);
-        fbo_->set_texture(0, &last_texture);
+        fbo_->set_texture(0, last_texture);
         program.set_texture(0, "tex", &texture);
 
         program.set_uniform("v63", counter_);

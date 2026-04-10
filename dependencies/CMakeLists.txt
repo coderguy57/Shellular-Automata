@@ -11,3 +11,5 @@ add_subdirectory(GLFW) # Depends on OpenGL.
 add_subdirectory(glm)
 add_subdirectory(imgui)
 add_subdirectory(yaml)
+add_subdirectory(Catch2)
+add_subdirectory(FFTW)

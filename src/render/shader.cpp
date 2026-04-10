@@ -7,7 +7,7 @@
 #include "glsl_transpiler.hpp"
 
 Shader::Shader(const std::string &path, GLuint type)
-    : _type{type} {
+    : _type{type}, _path{path} {
     std::ifstream file;
     file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     try {
@@ -80,7 +80,7 @@ bool Shader::compile(GLuint type) {
         glGetShaderInfoLog(_id, infoLen, NULL, &shader_error_info[0]);
 
         std::ostringstream output_error;
-        output_error << "Shader did not compile:\n";
+        output_error << "Shader did not compile: " << _path << "\n";
         std::istringstream error_lines(shader_error_info);
         std::string error;
         getline(error_lines, error);
@@ -152,7 +152,38 @@ ComputeProgram::~ComputeProgram() {
 }
 
 void ComputeProgram::use() const {
+    for (auto option : _c_shader->get_options()) {
+        if (option->changed) {
+            glDetachShader(_id, _c_shader->get_id());
+            _c_shader->recompile();
+            glAttachShader(_id, _c_shader->get_id());
+            glLinkProgram(_id);
+            break;
+        }
+    }
+    for (auto option : _c_shader->get_options()) {
+        option->changed = false;
+    }
     glUseProgram(_id);
+    for (auto option : _c_shader->get_options()) {
+        if (option->type == GLSL::IOption::Type::Float) {
+            auto opt = static_cast<GLSL::ValueOption<float>*>(option);
+            set_uniform(opt->name, opt->value);
+        } else if (option->type == GLSL::IOption::Type::Int) {
+            auto opt = static_cast<GLSL::ValueOption<int>*>(option);
+            set_uniform(opt->name, opt->value);
+        } else if (option->type == GLSL::IOption::Type::UInt) {
+            auto opt = static_cast<GLSL::ValueOption<uint32_t>*>(option);
+            set_uniform(opt->name, opt->value);
+        } else if (option->type == GLSL::IOption::Type::Bool) {
+            auto opt = static_cast<GLSL::ValueOption<bool>*>(option);
+            set_uniform(opt->name, opt->value);
+        } else if (option->type == GLSL::IOption::Type::Command) {
+            auto opt = static_cast<GLSL::ValueOption<bool>*>(option);
+            set_uniform(opt->name, opt->value);
+            opt->value = false;
+        }
+    }
 }
 
 void ComputeProgram::run(int x, int y, int z) const {

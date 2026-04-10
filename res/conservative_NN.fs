@@ -43,6 +43,8 @@ const float pull_scale = 5.;
 const bool RESTRICT_VALUES = false;
 //! option "Rule scale" exp (0.1, 2000)
 uniform float rule_scale = 70;
+//! option "Rule speed" exp (0.01, 5)
+uniform float rule_speed = 1;
 
 //! option "Paint size" (1,128)
 uniform int paint_size = 1;
@@ -332,6 +334,7 @@ void main() {
 		}
 
 		// demand *= pull_scale;
+		demand = (demand - res_c) * rule_speed;
 		demand = max(demand, vec4(0.));
 		if (RESTRICT_VALUES) {
 			demand = min(demand, vec4(1.));

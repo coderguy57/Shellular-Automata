@@ -13,6 +13,7 @@ uniform sampler2DArray prev_tex;
 void main() {
     vec4 prev_color = texture(prev_tex, vec3(v_texcoord, 0));
     frag_colour = texture(tex, vec3(v_texcoord, 0));
+    // frag_colour = log(abs(texture(tex, vec3(v_texcoord, 1)))+1)*0.01;
 
     frag_colour = mix(prev_color, frag_colour, smoothing);
     // frag_colour = mix(prev_color, frag_colour, smoothing);

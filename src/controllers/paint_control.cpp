@@ -104,10 +104,11 @@ void PaintControl::update(Data &data)
             data_element.bind_out(1);
             GLuint memory_barrier_bits = data_element.memory_barrier_bits();
 
+            compute_program_->set_uniform("paint_mask", color_mask_.r, color_mask_.g, color_mask_.b);
             compute_program_->set_uniform("cursor_pos", cursor_pos.x, cursor_pos.y);
             compute_program_->set_uniform("last_cursor_pos", last_cursor_pos_.x, last_cursor_pos_.y);
             compute_program_->set_uniform("mlr", left_click, right_click);
-            compute_program_->run(texture.width / compute_program_->local_size_x(), texture.height / compute_program_->local_size_y(), 1);
+            compute_program_->run(texture.width / compute_program_->local_size_x(), texture.height / compute_program_->local_size_y(), texture.depth / compute_program_->local_size_z());
             if (memory_barrier_bits != 0)
                 glMemoryBarrier(memory_barrier_bits);
             data_element.update();

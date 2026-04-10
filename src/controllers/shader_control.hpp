@@ -16,7 +16,7 @@ public:
     void post_process(Data& data) override;
 
 private:
-    void draw_shader_options(FragmentProgram& fragment_program);
+    void draw_shader_options(std::string name, FragmentProgram& fragment_program);
     void draw_shader_options_menu();
     
     // TODO: Add data to draw instead

@@ -10,7 +10,7 @@ data:
     width: 512
     height: 512
     depth: 1
-    format: "GL_RGBA16"
+    format: "GL_RGBA32F"
 engine:
   type: FragmentShaderEngine
   shader: "frag_shader"
@@ -20,11 +20,11 @@ controllers:
   - type: "InitTexture"
     shader: "init_mnca"
     texture: "data_texture"
-  - type: "Statistics"
-    texture: "data_texture"
+  # - type: "Statistics"
+  #   texture: "data_texture"
   - type: "Recorder"
     texture: "data_texture"
-  - type: "Mutation"
+  - type: "MutationNN"
     shader: "frag_shader"
   - type: "Shader"
 visualizer:

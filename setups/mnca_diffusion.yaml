@@ -4,16 +4,16 @@ data:
     path: "fluidMNCA/init_mnca.fs"
   - type: "fragment_shader"
     name: "frag_shader"
-    path: "conservative_NN.fs"
+    path: "conservative_NN_layer.fs"
   - type: "texture"
     name: "data_texture"
-    width: 1024
+    width: 2048
     height: 1024
     depth: 3
     format: "GL_RGBA32F"
   - type: "texture"
     name: "temp_texture"
-    width: 1024
+    width: 2048
     height: 1024
     format: "GL_RGBA32F"
 engine:
@@ -29,7 +29,7 @@ engine:
       outputs:
         1: "temp_texture"
     - name: "fluid_sim/diffusion.cs"
-      iterations: 20
+      iterations: 10
       work_group_data: "data_texture"
       inputs:
         0: "data_texture"

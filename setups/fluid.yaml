@@ -106,6 +106,8 @@ controllers:
     texture: "data_texture"
 visualizer:
   type: "2DRenderer"
+  # input: "temp_texture"
   input: "data_texture"
   view_shader: "viewer.fs"
+  # output_shader: "basic.fs"
   output_shader: "fluid_sim/fluid_viewer.fs"

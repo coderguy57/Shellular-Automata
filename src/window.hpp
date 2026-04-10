@@ -5,6 +5,8 @@
 #include <vector>
 #include <vector>
 
+void InitOpenGLContext();
+
 class SimulationSetup;
 class Window
 {

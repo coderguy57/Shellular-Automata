@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <GL/gl.h>
 
-#include "print.hpp"
+#include "utils/print.hpp"
 
 static std::mutex print_mutex;
 static bool allow_debug = false;

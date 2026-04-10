@@ -6,6 +6,12 @@ data:
     depth: 3
     format: "GL_RGBA32F"
   - type: "texture"
+    name: "temp_texture3D"
+    width: 512
+    height: 512
+    depth: 3
+    format: "GL_RGBA32F"
+  - type: "texture"
     name: "temp_texture"
     width: 512
     height: 512
@@ -30,23 +36,23 @@ engine:
       output: "data_texture"
       stages: 1
 
-    - name: "fluid_sim/copy.cs"
+    - name: "fluidMNCA/ca_copy3D.cs"
       work_group_data: "data_texture"
       inputs:
         0: "data_texture"
       outputs:
-        1: "temp_texture"
+        1: "temp_texture3D"
 
-    # - name: "fluid_sim/diffusion.cs"
-    #   iterations: 20
-    #   work_group_data: "data_texture"
-    #   inputs:
-    #     0: "data_texture"
-    #     1: "temp_texture"
-    #   outputs:
-    #     2: "data_texture"
+    - name: "fluidMNCA/ca_diffusion.cs"
+      iterations: 20
+      work_group_data: "data_texture"
+      inputs:
+        0: "data_texture"
+        1: "temp_texture3D"
+      outputs:
+        2: "data_texture"
 
-    - name: "fluid_sim/div.cs"
+    - name: "fluidMNCA/ca_div.cs"
       work_group_data: "data_texture"
       inputs:
         0: "data_texture"
@@ -58,7 +64,7 @@ engine:
       outputs:
         0: "temp_texture2"
 
-    - name: "fluid_sim/lin_solve.cs"
+    - name: "fluidMNCA/ca_lin_solve.cs"
       iterations: 20
       work_group_data: "data_texture"
       inputs:
@@ -66,20 +72,23 @@ engine:
         1: "temp_texture"
       outputs:
         2: "temp_texture2"
-    - name: "fluid_sim/project.cs"
+
+    - name: "fluidMNCA/ca_project.cs"
       work_group_data: "data_texture"
       inputs:
         0: "data_texture"
         1: "temp_texture2"
       outputs:
         2: "data_texture"
-    - name: "fluid_sim/advect_vel.cs"
+
+    - name: "fluidMNCA/ca_advect_vel.cs"
       work_group_data: "data_texture"
       inputs:
         0: "data_texture"
       outputs:
         1: "data_texture"
-    - name: "fluid_sim/div.cs"
+
+    - name: "fluidMNCA/ca_div.cs"
       work_group_data: "data_texture"
       inputs:
         0: "data_texture"
@@ -89,7 +98,7 @@ engine:
       work_group_data: "data_texture"
       outputs:
         0: "temp_texture2"
-    - name: "fluid_sim/lin_solve.cs"
+    - name: "fluidMNCA/ca_lin_solve.cs"
       iterations: 20
       work_group_data: "data_texture"
       inputs:
@@ -97,36 +106,40 @@ engine:
         1: "temp_texture"
       outputs:
         2: "temp_texture2"
-    - name: "fluid_sim/project.cs"
+    - name: "fluidMNCA/ca_project.cs"
       work_group_data: "data_texture"
       inputs:
         0: "data_texture"
         1: "temp_texture2"
       outputs:
         2: "data_texture"
-    - name: "fluid_sim/advect.cs"
+    - name: "fluidMNCA/ca_advect.cs"
       work_group_data: "data_texture"
       inputs:
         0: "data_texture"
       outputs:
         1: "data_texture"
+
+    - name: "fluidMNCA/ca_div.cs"
+      work_group_data: "data_texture"
+      inputs:
+        0: "data_texture"
+      outputs:
+        1: "temp_texture"
 controllers:
   - type: "InitTexture"
     shader: "init_shader"
     texture: "data_texture"
-  - type: "Statistics"
-    texture: "data_texture"
+  # - type: "Statistics"
+  #   texture: "data_texture"
   - type: "Recorder"
-    texture: "data_texture"
-  - type: "Paint"
-    shader: "paint_vel.cs"
     texture: "data_texture"
   - type: "Mutation"
     shader: "frag_shader"
   - type: "Shader"
 visualizer:
   type: "2DRenderer"
-  input: "data_texture"
+  input: "temp_texture"
   view_shader: "viewer.fs"
   # output_shader: "fluid_sim/fluid_viewer.fs"
   output_shader: "basic.fs"

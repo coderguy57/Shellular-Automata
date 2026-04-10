@@ -4,6 +4,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "controllers/mutation_control.hpp"
+#include "controllers/mutation_control_NN.hpp"
 #include "controllers/statistics_control.hpp"
 #include "controllers/paint_control.hpp"
 #include "controllers/recorder_control.hpp"
@@ -170,6 +171,11 @@ SimulationSetup load_simulation_setup(std::string const &path)
         {
             std::string fragment_name = controller_node["shader"].as<std::string>();
             simulation_setup.add_controller_back(std::make_unique<MutationControl>(fragment_name));
+        }
+        else if (controller_name == "MutationNN")
+        {
+            std::string fragment_name = controller_node["shader"].as<std::string>();
+            simulation_setup.add_controller_back(std::make_unique<MutationControlNN>(fragment_name));
         }
         else if (controller_name == "Statistics")
         {

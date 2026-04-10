@@ -241,6 +241,9 @@ void main() {
 	// target = 0.5 + target;
 	target = max(vec4(0.), min(vec4(1.), target));
 	res_c = res_v + speed * (target - res_v);
+	// res_c = target;
+	// res_c = (target - res_v);
+	// res_c = target;
 
 //	----    ----    ----    ----    ----    ----    ----    ----
 //	Shader Output

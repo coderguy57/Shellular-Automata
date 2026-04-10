@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "../print.hpp"
+#include "utils/print.hpp"
 #include "texture.hpp"
 
 namespace GLSL
@@ -20,6 +20,7 @@ class Shader
 {
 protected:
     bool compile(GLuint type);
+    const std::string _path;
     std::string _buffer;
     GLuint _id = 0;
     GLuint _type;
@@ -106,6 +107,8 @@ public:
     int local_size_x() { return _c_shader->local_size_x(); }
     int local_size_y() { return _c_shader->local_size_y(); }
     int local_size_z() { return _c_shader->local_size_z(); }
+
+    inline std::vector<GLSL::IOption *> get_options() const { return _c_shader->get_options(); };
 };
 
 template <typename T>

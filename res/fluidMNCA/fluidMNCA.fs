@@ -35,31 +35,6 @@ uniform bool paint_smooth;
 #define GET_TOTAL_DEMAND 1u
 #define CALC_FLOW 2u
 
-//! option "Negative factor" exp (0, 5)
-uniform float test_factor = 0;
-//! option "Overlap" exp (-1, 1)
-uniform float overlap = 0;
-
-//! option "H func"
-uniform bool hfunc = true;
-
-//! option "Sharp corners"
-const bool sharp = true;
-//! option "Smooth corner factor 1" exp (0.1, 100)
-uniform float exp_factor = 1;
-//! option "Smooth corner factor 2" exp (0.1, 200)
-uniform float exp_factor_2 = 1;
-
-//! option "Number of steps" (1, 24)
-const uint MAX_STEPS = 24;
-
-//! option "MNCAS STEPS" (0, 6)
-const uint MNCAS_INDEX = 3;
-const uint[7] MNCA_SELECTIVE = uint[7](1,2,3,4,6,12,24);
-const uint MNCAS_STEPS = MNCA_SELECTIVE[MNCAS_INDEX];
-
-
-
 //	----    ----    ----    ----    ----    ----    ----    ----
 //! texture_format GL_RGBA32F
 
@@ -125,47 +100,78 @@ vec4 gdv(ivec2 of, sampler2DArray tx, int layer) {
 }
 
 
-vec4[MAX_RADIUS][3] nh_rings_c;
-void dostuff(uint i) {
-	const float psn = 65536.0;
-	const uint rad = MAX_RADIUS;
-	const uint size = rad * 2 + 1;
-	const uint x = i % size; 
-	const uint y = i / size; 
-	const int xPos = int(x - rad);
-	const int yPos = int(y - rad);
-	const uint lenght = uint(round(sqrt((xPos * xPos) + (yPos * yPos))));
-	if (lenght < rad) {
-		const ivec2 pixCoord = ivec2(xPos, yPos);
-		nh_rings_c[lenght][0] += gdv(pixCoord, tex, 0) * (float(xPos) / lenght);
-		nh_rings_c[lenght][1] += gdv(pixCoord, tex, 0) * (float(yPos) / lenght);
-		nh_rings_c[lenght][2] += float(xPos) / lenght;
-	}
-}
-void test() {
-	for(uint i = 0u; i < MAX_RADIUS; i++) {
-		nh_rings_c[i][0] = vec4(0, 0, 0, 0);
-		nh_rings_c[i][1] = vec4(0, 0, 0, 0);
-	}
-	const uint rad = MAX_RADIUS;
-	const uint size = rad * 2 + 1;
-	//! UNROLL
-	for (uint i = 0; i < (MAX_RADIUS * 2 + 1) * (MAX_RADIUS * 2 + 1); i++) {
-		dostuff(i);
-	}
-}
+struct ConvData {
+	vec4 	valueX;
+	vec4 	valueY;
+	float 	total;
+};
+ConvData nbhd( vec2 r, sampler2DArray tx, int layer ) {
+	float	psn = 65536.0;
+	vec4	valueX = vec4(0);
+	vec4	valueY = vec4(0);
+	float 	total = 0;
+	vec4 local_demand  = gdv( ivec2( 0, 0), tx, 1);
 
-vec4[2] bitring(vec4[MAX_RADIUS][3] rings, uint bits, uint of) {
+	vec2 r2 = ceil(r + vec2(0.5)) - vec2(0.500001);
+	r2 = r2 * r2;
+	for(float j = 0.0; j <= r[0]; j++) {
+		vec2 bound = sqrt(max(vec2(0),r2 - vec2(j*j)));
+		for(float i = floor(bound[1])+1; i <= bound[0]; i++) {
+			total += 4.0;
+			valueX += gdv( ivec2( i, j), tx, layer ) * (float(i) / r[1]);
+			valueX += gdv( ivec2( j,-i), tx, layer ) * (float(j) / r[1]);
+			valueX -= gdv( ivec2(-i,-j), tx, layer ) * (float(i) / r[1]);
+			valueX -= gdv( ivec2(-j, i), tx, layer ) * (float(j) / r[1]);
+			valueY += gdv( ivec2( i, j), tx, layer ) * (float(i) / r[1]);
+			valueY += gdv( ivec2( j,-i), tx, layer ) * (float(j) / r[1]);
+			valueY -= gdv( ivec2(-i,-j), tx, layer ) * (float(i) / r[1]);
+			valueY -= gdv( ivec2(-j, i), tx, layer ) * (float(j) / r[1]);
+		} } 
+	return ConvData(valueX, valueY, total); }
+
+// vec4[MAX_RADIUS][3] nh_rings_c;
+// void dostuff(uint i) {
+// 	const float psn = 65536.0;
+// 	const uint rad = MAX_RADIUS;
+// 	const uint size = rad * 2 + 1;
+// 	const uint x = i % size; 
+// 	const uint y = i / size; 
+// 	const int xPos = int(x - rad);
+// 	const int yPos = int(y - rad);
+// 	const uint lenght = uint(round(sqrt((xPos * xPos) + (yPos * yPos))));
+// 	if (lenght < rad) {
+// 		const ivec2 pixCoord = ivec2(xPos, yPos);
+// 		nh_rings_c[lenght][0] += gdv(pixCoord, tex, 0) * (float(xPos) / lenght);
+// 		nh_rings_c[lenght][1] += gdv(pixCoord, tex, 0) * (float(yPos) / lenght);
+// 		nh_rings_c[lenght][2] += float(xPos) / lenght;
+// 	}
+// }
+// void test() {
+// 	for(uint i = 0u; i < MAX_RADIUS; i++) {
+// 		nh_rings_c[i][0] = vec4(0, 0, 0, 0);
+// 		nh_rings_c[i][1] = vec4(0, 0, 0, 0);
+// 	}
+// 	const uint rad = MAX_RADIUS;
+// 	const uint size = rad * 2 + 1;
+// 	//! UNROLL
+// 	for (uint i = 0; i < (MAX_RADIUS * 2 + 1) * (MAX_RADIUS * 2 + 1); i++) {
+// 		dostuff(i);
+// 	}
+// }
+
+// vec4[2] bitring(vec4[MAX_RADIUS][3] rings, uint bits, uint of) {
+vec4[2] bitring(ConvData[MAX_RADIUS] rings, uint bits, uint of) {
 	vec4 sum_x = vec4(0.0, 0.0, 0.0, 0.0);
 	vec4 sum_y = vec4(0.0, 0.0, 0.0, 0.0);
 	float tot = 0.;
-	for(uint i = 0u; i < MAX_RADIUS; i++) {
-		if(u32_upk(bits, 1u, i + of) == 1u) {
-			sum_x += rings[i][0];
-			sum_y += rings[i][1];
-			tot += rings[i][2][0];
-		}
-	}
+	// for(uint i = 0u; i < MAX_RADIUS; i++) {
+	// 	if(u32_upk(bits, 1u, i + of) == 1u) {
+			uint i = (u32_upk(bits, 4u, 0) + 1) % MAX_RADIUS;
+			sum_x += rings[i].valueX;
+			sum_y += rings[i].valueY;
+			tot += rings[i].total;
+	// 	}
+	// }
 	return vec4[2](sum_x / tot, sum_y / tot);
 }
 
@@ -176,12 +182,11 @@ void main() {
 //	----    ----    ----    ----    ----    ----    ----    ----
 
 //	NH Rings
-	// ConvData[MAX_RADIUS] nh_rings_c;
-	// ConvData nbh = {vec4(0.), 0.};
-	// for(uint i = 0u; i < MAX_RADIUS; i++) {
-	// 	nh_rings_c[i] = nbhd(vec2(i + 1u, i), tex, 0);
-	// }
-	test();
+	ConvData[MAX_RADIUS] nh_rings_c;
+	for(uint i = 0u; i < MAX_RADIUS; i++) {
+		nh_rings_c[i] = nbhd(vec2(i + 1u, i), tex, 0);
+	}
+	// test();
 
 //	Parameters
 	const float mnp = 1.0 / 65536.0;			//	Minimum value of a precise step for 16-bit channel
@@ -218,13 +223,13 @@ void main() {
 			1.0
 		);
 
-		vec4 rr_x = nh[0]*nnvr*rule_scale;
-		vec4 rg_x = nh[0]*nnvg*rule_scale;
-		vec4 rb_x = nh[0]*nnvb*rule_scale;
+		vec4 rr_x = nh[0]*nnvr;
+		vec4 rg_x = nh[0]*nnvg;
+		vec4 rb_x = nh[0]*nnvb;
 
-		vec4 rr_y = nh[1]*nnvr*rule_scale;
-		vec4 rg_y = nh[1]*nnvg*rule_scale;
-		vec4 rb_y = nh[1]*nnvb*rule_scale;
+		vec4 rr_y = nh[1]*nnvr;
+		vec4 rg_y = nh[1]*nnvg;
+		vec4 rb_y = nh[1]*nnvb;
 
 		if(i == 0u) {
 			x_force[0] = (rr_x[0]+rr_x[1]+rr_x[2]);
@@ -272,7 +277,11 @@ void main() {
 	res_c = min(vec4(1), res_c);
 
 	out_col1 = res_c;
-	out_col2 = x_force;
-	out_col3 = y_force;
+	out_col2 = 10*sign(x_force)*log(abs(x_force)+1);
+	out_col3 = 10*sign(y_force)*log(abs(y_force)+1);
+	// out_col2.x = 0;
+	// out_col3.x = 0;
+	// out_col2 = 0.000001* min(x_force, 0.1);
+	// out_col3 = 0.000001* min(y_force, 0.1);
 	// out_col4 = demand;
 }

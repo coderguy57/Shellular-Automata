@@ -1,6 +1,6 @@
 #include "framebuffer.hpp"
 
-#include "print.hpp"
+#include "utils/print.hpp"
 
 Framebuffer::Framebuffer() {
     glGenFramebuffers(1, &_id);
@@ -12,15 +12,15 @@ Framebuffer::~Framebuffer() {
         glDeleteFramebuffers(1, &_id);
 }
 
-void Framebuffer::set_texture(int index, const Texture* texture) {
-    if (texture->target == GL_TEXTURE_2D_ARRAY) {
-        texture->bind();
-        for (unsigned int i = 0; i < texture->depth; i++) {
-            glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, texture->gl_tex_num, 0, i);
+void Framebuffer::set_texture(int index, const Texture& texture) {
+    if (texture.target == GL_TEXTURE_2D_ARRAY) {
+        texture.bind();
+        for (unsigned int i = 0; i < texture.depth; i++) {
+            glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, texture.gl_tex_num, 0, i);
         }
-    	glBindTexture(texture->target, 0);
+    	glBindTexture(texture.target, 0);
     } else {
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, texture->target, texture->gl_tex_num, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, texture.target, texture.gl_tex_num, 0);
     }
 }
 

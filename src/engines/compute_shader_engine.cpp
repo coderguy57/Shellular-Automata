@@ -43,7 +43,7 @@ void FragmentShaderStep::do_step(Data &data)
         }
 
         glDrawBuffers(texture.depth, &buffers[0]);
-        fbo_->set_texture(0, &last_texture);
+        fbo_->set_texture(0, last_texture);
         program.set_texture(0, "tex", &texture);
 
         program.set_uniform("v63", counter_);
@@ -89,7 +89,7 @@ void ComputeShaderStep::do_step(Data &data)
         else {
             auto& texture_data = data.get_element<TextureData>(data_work_group_);
             auto& texture = texture_data.get_texture();
-            step_->run(texture.width / step_->local_size_x(), texture.height / step_->local_size_y(), 1);
+            step_->run(texture.width / step_->local_size_x(), texture.height / step_->local_size_y(), texture.depth / step_->local_size_z());
         }
         if (memory_barrier_bits != 0)
             glMemoryBarrier(memory_barrier_bits);

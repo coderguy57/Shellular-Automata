@@ -12,6 +12,7 @@ void main()
     uvec2 coord = gl_GlobalInvocationID.xy;
     vec3 color = texelFetch(tex, ivec3(coord, 0), 0).xyz;
     ivec3 index = ivec3(color * 255.999);
+    // index = ivec3(min(30*log(vec3(index)), vec3(255)));
 
     atomicAdd(red[0], index.r);
     atomicAdd(blue[index.b], 1);

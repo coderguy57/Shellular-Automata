@@ -77,7 +77,7 @@ void RecorderControl::post_process(Data& data)
             capture_wait_ = capture_frequence_;
 
             TextureOptions option{};
-            Texture *temp_texture = new Texture(texture.width, texture.height, 1, option);
+            Texture temp_texture = Texture(texture.width, texture.height, 1, option);
             RenderSurface surface;
             FragmentProgram output_program{"basic.vs", "basic.fs"};
             Framebuffer fbo;

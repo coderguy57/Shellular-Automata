@@ -8,10 +8,11 @@
 #include "render/glsl_transpiler.hpp"
 #include "data.hpp"
 
-void ShaderControl::draw_shader_options(FragmentProgram &fragment_program)
+void ShaderControl::draw_shader_options(std::string name, FragmentProgram &fragment_program)
 {
     for (GLSL::IOption *option : fragment_program.get_options())
     {
+        ImGui::PushID((name + "#" + option->label).c_str());
         if (option->type == GLSL::IOption::Type::Float)
         {
             auto opt = static_cast<GLSL::ValueOption<float> *>(option);
@@ -39,6 +40,7 @@ void ShaderControl::draw_shader_options(FragmentProgram &fragment_program)
             if (ImGui::Button(opt->label.c_str()))
                 opt->activate();
         }
+        ImGui::PopID();
     }
 }
 
@@ -51,7 +53,7 @@ void ShaderControl::draw_shader_options_menu()
         [&](std::string name, FragmentProgramData &program_data)
         {
             if (ImGui::CollapsingHeader(name.c_str()))
-                draw_shader_options(program_data.get_program());
+                draw_shader_options(name, program_data.get_program());
         });
 
     ImGui::End();

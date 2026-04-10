@@ -4,7 +4,7 @@ project(ShellularAutomata)
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
 set(PROJECT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
 option(BUILD_SHARED_LIBS "Build dependencies as shared libraries" OFF)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 # Set MSVC runtime to MultiThreaded (/MT)
 cmake_policy(SET CMP0091 NEW)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
@@ -14,6 +14,7 @@ link_directories(/usr/local/lib)
 #file(GLOB IMGUI_SRC "${CMAKE_SOURCE_DIR}/lib/*.cpp")
 #include_directories(${CMAKE_SOURCE_DIR}/lib)
 
+include_directories("dependencies/stb")
 
 include_directories("${PROJECT_SOURCE_DIR}")
 
@@ -34,4 +35,10 @@ target_link_libraries(ShellularAutomata PRIVATE
 	dependency_GLFW
 	dependency_glm
 	dependency_imgui
-	dependency_yaml)
+	dependency_yaml
+)
+
+# if (BUILD_TESTING)
+enable_testing()
+add_subdirectory(tests)
+# endif()

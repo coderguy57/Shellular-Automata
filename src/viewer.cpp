@@ -52,7 +52,7 @@ void Viewer::view(uint32_t width, uint32_t height, Data& data) {
 
         GLenum buffer = GL_COLOR_ATTACHMENT0;
         glDrawBuffers(1, &buffer);
-        _fbo->set_texture(0, _tex0_last_drawn ? _tex1 : _tex0);
+        _fbo->set_texture(0, _tex0_last_drawn ? *_tex1 : *_tex0);
         program->set_texture(0, "prev_tex", _tex0_last_drawn ? _tex0 : _tex1);
         program->set_texture(1, "tex", &texture);
         _surface->draw();

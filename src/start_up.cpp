@@ -3,10 +3,15 @@
 #include "window.hpp"
 #include "simulation_setup_loader.hpp"
 
+#include "setup/setups.hpp"
+
 int main(int, char **)
 {
-    Window window{1024, 800};
-    auto simulation = load_simulation_setup("mnca_diffusion.yaml");
+    Window window{768, 768};
+    // auto simulation = load_simulation_setup("slackerman.yaml");
+    // auto simulation = setup_conservative();
+    // auto simulation = load_simulation_setup("fluidMNCA.yaml");
+    auto simulation = setup_fluid();
     window.run(std::move(simulation));
     // Engine *e = new Engine(1024, 512, 2, "slack_layer.fs", GL_RGBA16);
     // Engine *e = new Engine(512, 512, 1, "slackerz.fs", GL_RGBA16);

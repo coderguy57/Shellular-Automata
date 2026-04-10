@@ -22,7 +22,7 @@ vec4 get_color2(int x, int y) {
   return (imageLoad(inputImage, coord));
 }
 
-const vec4 diffusion_coefficient = vec4(2);
+const vec4 diffusion_coefficient = vec4(0.1);
 void main() {
   vec4 density = get_color1(0, 0);
   vec4 left_density = get_color2(-1, 0);

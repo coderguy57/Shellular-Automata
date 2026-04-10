@@ -6,7 +6,7 @@
 #include "render/shader.hpp"
 #include "data.hpp"
 
-uint32_t u32_upk(uint32_t u32, uint32_t bts, uint32_t off)
+static uint32_t u32_upk(uint32_t u32, uint32_t bts, uint32_t off)
 {
     return (u32 >> off) & ((1u << bts) - 1u);
 }
@@ -97,7 +97,7 @@ MutationControl::~MutationControl()
 {
 }
 
-void draw_col_button(int &id, uint32_t &state, uint32_t off, int col, bool same_line = true)
+static void draw_col_button(int &id, uint32_t &state, uint32_t off, int col, bool same_line = true)
 {
     ImGui::PushID(id++);
     uint32_t selected = state & (3u << off);
@@ -120,7 +120,7 @@ void draw_col_button(int &id, uint32_t &state, uint32_t off, int col, bool same_
         ImGui::SameLine();
 }
 
-void draw_button(int &id, uint32_t &state, uint32_t off, bool same_line = false)
+static void draw_button(int &id, uint32_t &state, uint32_t off, bool same_line = false)
 {
     ImGui::PushID(id++);
     uint32_t selected = state & (1 << off);
@@ -138,7 +138,7 @@ void draw_button(int &id, uint32_t &state, uint32_t off, bool same_line = false)
         ImGui::SameLine();
 }
 
-void draw_slider(int &id, uint8_t *state, bool same_line = false)
+static void draw_slider(int &id, uint8_t *state, bool same_line = false)
 {
     const uint8_t min_scale = 0;
     const uint8_t max_scale = 255;
@@ -149,13 +149,13 @@ void draw_slider(int &id, uint8_t *state, bool same_line = false)
         ImGui::SameLine();
 }
 
-uint32_t u32_flp(uint32_t u32, uint32_t off) { return u32 ^ (1 << off); }
-uint32_t u32_set(uint32_t u32, uint32_t off) { return u32 | (1 << off); }
-uint32_t u32_clr(uint32_t u32, uint32_t off) { return u32 & (1 << off); }
+static uint32_t u32_flp(uint32_t u32, uint32_t off) { return u32 ^ (1 << off); }
+static uint32_t u32_set(uint32_t u32, uint32_t off) { return u32 | (1 << off); }
+static uint32_t u32_clr(uint32_t u32, uint32_t off) { return u32 & (1 << off); }
 
-uint32_t mut_rnd() { return rand() % UINT32_MAX; }
+static uint32_t mut_rnd() { return rand() % UINT32_MAX; }
 
-uint32_t blk_clr(uint32_t u32)
+static uint32_t blk_clr(uint32_t u32)
 {
     for (int i = 0; i < 32; i++)
     {
@@ -164,7 +164,7 @@ uint32_t blk_clr(uint32_t u32)
     return u32;
 }
 
-uint32_t blk_set(uint32_t u32)
+static uint32_t blk_set(uint32_t u32)
 {
     for (int i = 0; i < 32; i++)
     {
@@ -173,7 +173,7 @@ uint32_t blk_set(uint32_t u32)
     return u32;
 }
 
-uint32_t wrd_clr(uint32_t u32, uint32_t off, uint32_t len)
+static uint32_t wrd_clr(uint32_t u32, uint32_t off, uint32_t len)
 {
     len = len - (((off + len) / 32) * ((off + len) % 32));
     for (int i = off; i < off + len; i++)
@@ -183,7 +183,7 @@ uint32_t wrd_clr(uint32_t u32, uint32_t off, uint32_t len)
     return u32;
 }
 
-uint32_t wrd_set(uint32_t u32, uint32_t off, uint32_t len)
+static uint32_t wrd_set(uint32_t u32, uint32_t off, uint32_t len)
 {
     len = len - (((off + len) / 32) * ((off + len) % 32));
     for (int i = off; i < off + len; i++)
@@ -193,7 +193,7 @@ uint32_t wrd_set(uint32_t u32, uint32_t off, uint32_t len)
     return u32;
 }
 
-uint32_t wrd_flp(uint32_t u32, uint32_t off, uint32_t len)
+static uint32_t wrd_flp(uint32_t u32, uint32_t off, uint32_t len)
 {
     len = len - (((off + len) / 32) * ((off + len) % 32));
     for (int i = off; i < off + len; i++)
@@ -203,7 +203,7 @@ uint32_t wrd_flp(uint32_t u32, uint32_t off, uint32_t len)
     return u32;
 }
 
-uint32_t bit_flp(uint32_t u32, int rnd)
+static uint32_t bit_flp(uint32_t u32, int rnd)
 {
     for (int i = 0; i < 32; i++)
     {

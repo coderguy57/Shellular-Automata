@@ -73,7 +73,7 @@ void InitTextureControl::update(Data& data)
             }
 
             glDrawBuffers(last_texture.depth, &buffers[0]);
-            fbo_->set_texture(0, &last_texture);
+            fbo_->set_texture(0, last_texture);
 
             program.set_uniform("rand_seed", seed_ % (1 << 16));
             program.set_uniform("texture_width", (float)last_texture.width);

@@ -10,8 +10,6 @@ float get_color(int x, int y, layout (rgba32f) image2D sampler) {
   ivec2 image_size = imageSize(sampler);
 
   ivec2 coord = ivec2(gl_GlobalInvocationID.xy) + ivec2(x, y);
-  float value = length(vec2(coord - image_size / 2));
-  float test = step(128, value);
   coord = coord % image_size;
   return (imageLoad(sampler, coord).x);
 }

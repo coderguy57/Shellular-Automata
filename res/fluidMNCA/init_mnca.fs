@@ -86,7 +86,12 @@ float reseed(uint seed, float scl, float amp) {
 	return clamp(sqrt((r0 + r1) * r3 * (amp + 1.2)) - r2 * (amp * 1.8 + 0.2), 0.0, 1.0);
 }
 
+float rand(vec2 co){
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
 void main() {
+    // out_col1[0] = rand(vec2(lmap(), vmap()));
     out_col1[0] = power_r * reseed(rand_seed + 0u, scale_r, amp_r) * (1.-lmap());
     out_col1[1] = power_g * reseed(rand_seed + 1u, scale_g, amp_g) * lmap();
     out_col1[2] = power_b * reseed(rand_seed + 2u, scale_b, amp_b) * vmap();

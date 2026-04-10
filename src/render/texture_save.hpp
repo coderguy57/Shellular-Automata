@@ -9,16 +9,17 @@
 #include <filesystem>
 
 #include "texture.hpp"
+#include "utils/image_load.hpp"
+#include "utils/print.hpp"
 
 class TextureSave
 {
 public:
-    TextureSave(std::string filename, Texture *texture)
+    TextureSave(std::string filename, Texture texture) : _texture{texture}
     {
         _filename = filename;
-        _texture = texture;
-        _width = texture->width;
-        _height = texture->height;
+        _width = _texture.width;
+        _height = _texture.height;
 
         _stride = _channel_count * _width;
 
@@ -29,7 +30,7 @@ public:
         glBufferData(GL_PIXEL_PACK_BUFFER, _data_size, NULL, GL_STREAM_DRAW);
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture->gl_tex_num);
+        glBindTexture(GL_TEXTURE_2D, texture.gl_tex_num);
 
         glGetTexImage(GL_TEXTURE_2D,
                       0,
@@ -76,11 +77,11 @@ public:
 
                 file.write((const char*)(src), _width * _height * 3);
                 file.close();
+                free(src);
             }
 
             glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
             glDeleteBuffers(1, &_pbo);
-            delete _texture;
             _pbo = 0;
             _done = true;
         }
@@ -102,7 +103,39 @@ private:
     int _data_size;
     std::string _filename;
     
-    Texture* _texture;
+    Texture _texture;
     GLuint _pbo;
     bool _done = false;
 };
+
+template<typename T>
+std::optional<TextureBuffer<T>> save_texture_directly(const Texture& texture, const TextureOptions& options) {
+    texture.bind();
+
+    // Calculate the size of the buffer
+    GLint channels = 0;
+    switch (options.format) {
+        case GL_RED: channels = 1; break;
+        case GL_RGB: channels = 3; break;
+        case GL_RGBA: channels = 4; break;
+        // Add cases for other formats as needed
+        default:
+            print_error("Unsupported format: %d", options.format);
+            return std::nullopt;
+    }
+
+    TextureBuffer<T> buffer;
+    buffer.width = texture.width;
+    buffer.height = texture.height;
+    buffer.depth = texture.depth;
+    buffer.channels = channels;
+    buffer.data = std::make_unique<T[]>(buffer.width * buffer.height * buffer.channels);
+
+    // Read the texture data
+    glGetTexImage(GL_TEXTURE_2D_ARRAY, 0, options.format, options.type, buffer.data.get());
+
+    // Unbind the texture
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+
+    return buffer;
+}
