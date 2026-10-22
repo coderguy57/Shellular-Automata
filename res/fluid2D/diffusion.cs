@@ -10,7 +10,7 @@ vec4 get_color1(int x, int y) {
   ivec3 image_size = imageSize(defaultImage);
 
   ivec3 coord = ivec3(gl_GlobalInvocationID.xyz) + ivec3(x, y, 0);
-  coord = coord % image_size;
+  coord = (coord % image_size + image_size) % image_size;
   return (imageLoad(defaultImage, coord));
 }
 
@@ -18,7 +18,7 @@ vec4 get_color2(int x, int y) {
   ivec3 image_size = imageSize(inputImage);
 
   ivec3 coord = ivec3(gl_GlobalInvocationID.xyz) + ivec3(x, y, 0);
-  coord = coord % image_size;
+  coord = (coord % image_size + image_size) % image_size;
   return (imageLoad(inputImage, coord));
 }
 

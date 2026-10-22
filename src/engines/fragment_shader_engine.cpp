@@ -85,7 +85,8 @@ void FragmentShaderEngine::step(Data& data)
     auto& program = program_data.get_program();
     auto& texture_data = data.get_element<TextureData>(texture_name_);
     glViewport(0, 0, texture_data.get_texture().width, texture_data.get_texture().height);
-    program.use();
+    if (!program.use())
+        return;
     fbo_->use();
     for (uint32_t stage = 0; stage < stages_; stage++)
     {

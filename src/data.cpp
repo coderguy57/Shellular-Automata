@@ -1,17 +1,23 @@
 #include "data.hpp"
 
+namespace {
+TextureOptions texture_array_options(TextureOptions options) {
+    options.target = GL_TEXTURE_2D_ARRAY;
+    return options;
+}
+}
+
 TextureData::TextureData(uint32_t width, uint32_t height, uint32_t depth, TextureOptions options) 
     : DataElement(),
-    texture0_(width, height, depth, options),
-    texture1_(width, height, depth, options) {
-    texture0_.options.target = GL_TEXTURE_2D_ARRAY;
-    texture1_.options.target = GL_TEXTURE_2D_ARRAY;
+    texture0_(width, height, depth, texture_array_options(options)),
+    texture1_(width, height, depth, texture_array_options(options)) {
 }
 
 TextureData::TextureData(Texture&& texture) 
     : DataElement(),
     texture0_(texture),
-    texture1_(texture.width, texture.height, texture.depth, texture.options) {
+    texture1_(texture.width, texture.height, texture.depth, texture.options),
+    tex0_last_updated_(true) {
     assert(texture.options.target == GL_TEXTURE_2D_ARRAY);
 }
 

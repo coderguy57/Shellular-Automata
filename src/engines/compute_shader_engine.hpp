@@ -53,6 +53,14 @@ class ComputeShaderStep : public Step
 public:
     ComputeShaderStep(std::string compute_path, std::vector<ComputeShaderInput> inputs, std::vector<ComputeShaderInput> outputs);
     void do_step(Data &data) override;
+    ComputeProgram& program()
+    {
+        return *step_;
+    }
+    std::string const& shader_name() const
+    {
+        return compute_path_;
+    }
     ComputeShaderStep* set_iterations(int iterations)
     {
         iterations_ = iterations;
@@ -77,13 +85,10 @@ public:
         auto it = std::find_if(options.begin(), options.end(),
                                [&name](GLSL::IOption *option)
                                { return option->label == name; });
-        if (it != std::end(options)) {
+        if (it != std::end(options) && (*it)->type == GLSL::IOption::Type::Bool) {
             auto opt = static_cast<GLSL::BoolOption*>(*it);
-            if (opt) {
-                // if (opt->value != value)
-                opt->changed = true;
-                opt->value = value;
-            }
+            opt->changed = true;
+            opt->value = value;
         }
         return this;
     };
@@ -95,11 +100,19 @@ public:
                                [&name](GLSL::IOption *option)
                                { return option->label == name; });
         if (it != std::end(options)) {
-            auto opt = static_cast<GLSL::ValueOption<T> *>(*it);
-            if (opt) {
-                // if (opt->value != value)
+            auto option = *it;
+            if (option->type == GLSL::IOption::Type::Int) {
+                auto opt = static_cast<GLSL::ValueOption<int> *>(option);
                 opt->changed = true;
-                opt->value = value;
+                opt->value = static_cast<int>(value);
+            } else if (option->type == GLSL::IOption::Type::UInt) {
+                auto opt = static_cast<GLSL::ValueOption<uint32_t> *>(option);
+                opt->changed = true;
+                opt->value = static_cast<uint32_t>(value);
+            } else if (option->type == GLSL::IOption::Type::Float) {
+                auto opt = static_cast<GLSL::ValueOption<float> *>(option);
+                opt->changed = true;
+                opt->value = static_cast<float>(value);
             }
         }
         return this;
@@ -107,6 +120,7 @@ public:
 
 private:
     std::unique_ptr<ComputeProgram> step_;
+    std::string compute_path_;
     std::vector<ComputeShaderInput> inputs_;
     std::vector<ComputeShaderInput> outputs_;
     std::string data_work_group_ = "";
@@ -122,6 +136,7 @@ public:
     ComputeShaderEngine(){};
     ~ComputeShaderEngine(){};
     void step(Data &data) override;
+    std::vector<ComputeShaderStep*> compute_steps();
     void add_step(std::unique_ptr<Step> step)
     {
         steps.push_back(std::move(step));

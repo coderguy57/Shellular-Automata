@@ -12,6 +12,18 @@ void ComputeShaderEngine::step(Data &data)
     }
 }
 
+std::vector<ComputeShaderStep*> ComputeShaderEngine::compute_steps()
+{
+    std::vector<ComputeShaderStep*> result;
+    for (auto& step : steps)
+    {
+        auto* compute_step = dynamic_cast<ComputeShaderStep*>(step.get());
+        if (compute_step)
+            result.push_back(compute_step);
+    }
+    return result;
+}
+
 FragmentShaderStep::FragmentShaderStep(
     std::string fragment_name,
     std::vector<FragmentShaderInput> inputs, std::string output, int stages)
@@ -29,7 +41,8 @@ void FragmentShaderStep::do_step(Data &data)
     auto& program = program_data.get_program();
     auto& texture_data = data.get_element<TextureData>(output_);
     glViewport(0, 0, texture_data.get_texture().width, texture_data.get_texture().height);
-    program.use();
+    if (!program.use())
+        return;
     fbo_->use();
     for (uint32_t stage = 0; stage < stages_; stage++)
     {
@@ -62,6 +75,7 @@ ComputeShaderStep::ComputeShaderStep(
     std::string compute_path,
     std::vector<ComputeShaderInput> inputs, std::vector<ComputeShaderInput> outputs)
 {
+    compute_path_ = compute_path;
     step_ = std::make_unique<ComputeProgram>(compute_path);
     inputs_ = inputs;
     outputs_ = outputs;
@@ -69,7 +83,8 @@ ComputeShaderStep::ComputeShaderStep(
 void ComputeShaderStep::do_step(Data &data)
 {
     for (int i = 0; i < iterations_; i++) {
-        step_->use();
+        if (!step_->use())
+            continue;
         GLuint memory_barrier_bits = 0;
         for (const auto &input : inputs_)
         {

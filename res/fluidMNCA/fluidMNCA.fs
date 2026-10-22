@@ -95,7 +95,8 @@ float hmp2(float x, float w) {
 
 vec4 gdv(ivec2 of, sampler2DArray tx, int layer) {
 	of = ivec2(gl_FragCoord) + of;
-	of = ivec2(mod(of, textureSize(tx, 0).xy));
+	ivec2 image_size = textureSize(tx, 0).xy;
+	of = (of % image_size + image_size) % image_size;
 	return texelFetch(tx, ivec3(of, layer), 0);
 }
 

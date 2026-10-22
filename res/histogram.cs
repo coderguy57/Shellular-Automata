@@ -10,11 +10,16 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 void main()
 {
     uvec2 coord = gl_GlobalInvocationID.xy;
+    ivec2 image_size = textureSize(tex, 0).xy;
+    if (any(greaterThanEqual(coord, uvec2(image_size)))) {
+        return;
+    }
+
     vec3 color = texelFetch(tex, ivec3(coord, 0), 0).xyz;
-    ivec3 index = ivec3(color * 255.999);
+    ivec3 index = ivec3(clamp(color, vec3(0), vec3(1)) * 255.999);
     // index = ivec3(min(30*log(vec3(index)), vec3(255)));
 
-    atomicAdd(red[0], index.r);
+    atomicAdd(red[index.r], 1);
     atomicAdd(blue[index.b], 1);
     atomicAdd(green[index.g], 1);
 

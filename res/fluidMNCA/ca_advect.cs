@@ -7,26 +7,46 @@ layout(rgba32f, binding = 3) uniform image2DArray outputImage;
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-vec4 get_color(int x, int y, layout (rgba32f) image2DArray sampler, int layer) {
-    ivec2 image_size = imageSize(sampler).xy;
-
-    ivec2 coord = ivec2(gl_GlobalInvocationID.xy) + ivec2(x, y);
-    coord = coord % image_size;
-    return imageLoad(sampler, ivec3(coord, layer));
+ivec2 wrap_coord(ivec2 coord, ivec2 image_size) {
+    return (coord % image_size + image_size) % image_size;
 }
 
-vec4 get_color(ivec4 x, ivec4 y, layout (rgba32f) image2DArray sampler, int layer) {
+vec4 get_x_vel(int x, int y) {
+    ivec2 image_size = imageSize(x_vel_in).xy;
+
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy) + ivec2(x, y);
+    coord = wrap_coord(coord, image_size);
+    return imageLoad(x_vel_in, ivec3(coord, 0));
+}
+
+vec4 get_y_vel(int x, int y) {
+    ivec2 image_size = imageSize(y_vel_in).xy;
+
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy) + ivec2(x, y);
+    coord = wrap_coord(coord, image_size);
+    return imageLoad(y_vel_in, ivec3(coord, 0));
+}
+
+vec4 get_input_color(int x, int y) {
+    ivec2 image_size = imageSize(inputImage).xy;
+
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy) + ivec2(x, y);
+    coord = wrap_coord(coord, image_size);
+    return imageLoad(inputImage, ivec3(coord, 0));
+}
+
+vec4 get_input_color(ivec4 x, ivec4 y) {
     vec4 color;
     for (int i = 0; i < 4; i++) {
-        color[i] = get_color(x[i], y[i], sampler, layer)[i];
+        color[i] = get_input_color(x[i], y[i])[i];
     }
     return color;
 }
 
 void main() {
     ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
-    vec4 colorX = get_color(0, 0, x_vel_in, 0);
-    vec4 colorY = get_color(0, 0, y_vel_in, 0);
+    vec4 colorX = get_x_vel(0, 0);
+    vec4 colorY = get_y_vel(0, 0);
 
     float dt = 2000;
     vec4 posX = -dt * colorX;
@@ -38,10 +58,10 @@ void main() {
     vec4 scaleX = posX - pos0X;
     vec4 scaleY = posY - pos0Y;
 
-    vec4 d00 = get_color(pos0X, pos0Y, inputImage, 0);
-    vec4 d01 = get_color(pos0X, pos1Y, inputImage, 0);
-    vec4 d10 = get_color(pos1X, pos0Y, inputImage, 0);
-    vec4 d11 = get_color(pos1X, pos1Y, inputImage, 0);
+    vec4 d00 = get_input_color(pos0X, pos0Y);
+    vec4 d01 = get_input_color(pos0X, pos1Y);
+    vec4 d10 = get_input_color(pos1X, pos0Y);
+    vec4 d11 = get_input_color(pos1X, pos1Y);
 
     vec4 color = mix(mix(d00, d01, scaleY), mix(d10, d11, scaleY), scaleX);
 

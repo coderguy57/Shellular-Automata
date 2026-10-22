@@ -15,7 +15,7 @@ void main() {
 
   vec4 color = imageLoad(inputImage, coord);
 
-  float mask = paint_mask[coord.z];
+  float mask = coord.z == 0 ? paint_mask.r : paint_mask.g;
 
   float dist = length((cursor_pos * image_size.xy) - coord.xy);
   float paint = max(0, 10 - dist);

@@ -90,9 +90,10 @@ namespace GLSL
         CommandOption(std::string name, std::string label, std::vector<Token>::iterator it, bool compile_constant);
 
         inline void activate() { _value = true; changed = true; };
+        inline bool consume_value() { bool value = _value; _value = false; return value; };
         inline std::string const_expression() override { return "const bool " + name + " = " + (_value ? "true;" : "false;"); }
     private:
-        bool _value;
+        bool _value = false;
     };
 
     class Define

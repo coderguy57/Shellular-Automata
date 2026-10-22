@@ -51,12 +51,18 @@ void InitTextureControl::update(Data& data)
         auto& texture_data = data.get_element<TextureData>(texture_name_);
         auto& last_texture = texture_data.get_last_texture();
         if (compute_program_) {
-            compute_program_->use();
+            if (!compute_program_->use()) {
+                init_ = false;
+                return;
+            }
             GLuint memory_barrier_bits = 0;
             texture_data.bind(0);
             memory_barrier_bits |= texture_data.memory_barrier_bits();
 
-            compute_program_->run(last_texture.width / compute_program_->local_size_x(), last_texture.height / compute_program_->local_size_y(), 1);
+            compute_program_->run(
+                last_texture.width / compute_program_->local_size_x(),
+                last_texture.height / compute_program_->local_size_y(),
+                last_texture.depth / compute_program_->local_size_z());
             if (memory_barrier_bits != 0)
                 glMemoryBarrier(memory_barrier_bits);
         } else {
@@ -65,7 +71,10 @@ void InitTextureControl::update(Data& data)
 
             glViewport(0, 0, last_texture.width, last_texture.height);
             fbo_->use();
-            program.use();
+            if (!program.use()) {
+                init_ = false;
+                return;
+            }
             std::vector<GLenum> buffers;
             for (size_t i = 0; i < last_texture.depth; i++)
             {

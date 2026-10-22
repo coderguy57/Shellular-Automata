@@ -5,14 +5,6 @@ layout(rgba32f, binding = 1) uniform image2DArray y_vel_in;
 layout(rgba32f, binding = 2) uniform image2DArray x_vel_out;
 layout(rgba32f, binding = 3) uniform image2DArray y_vel_out;
 
-vec4 get_color(int x, int y, layout (rgba32f) image2DArray sampler) {
-  ivec2 image_size = imageSize(sampler).xy;
-
-  ivec2 coord = ivec2(gl_GlobalInvocationID.xy) + ivec2(x, y);
-  coord = coord % image_size;
-  return imageLoad(sampler, ivec3(coord, 0));
-}
-
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main() {
   vec2 wavenumber = gl_GlobalInvocationID.xy;

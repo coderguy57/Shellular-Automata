@@ -45,7 +45,8 @@ void Viewer::view(uint32_t width, uint32_t height, Data& data) {
 
     {
         glViewport(0, 0, texture.width, texture.height);
-        program->use();
+        if (!program->use())
+            return;
         _fbo->use();
 
         _tex0_last_drawn = !_tex0_last_drawn;
@@ -60,7 +61,8 @@ void Viewer::view(uint32_t width, uint32_t height, Data& data) {
 
     glViewport(0, 0, width, height);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    output_program->use();
+    if (!output_program->use())
+        return;
     output_program->set_texture(0, "tex", _tex0_last_drawn ? _tex1 : _tex0);
     _surface->draw();
 }

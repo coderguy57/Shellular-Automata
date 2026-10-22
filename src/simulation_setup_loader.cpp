@@ -68,6 +68,8 @@ SimulationSetup load_simulation_setup(std::string const &path)
 
     // Create the engine component
     std::unique_ptr<Engine> engine;
+    FragmentShaderEngine* fragment_engine_for_control = nullptr;
+    ComputeShaderEngine* compute_engine_for_control = nullptr;
     auto engine_node = config["engine"];
     auto test = engine_node["type"];
     std::string engine_name = engine_node["type"].as<std::string>();
@@ -77,11 +79,14 @@ SimulationSetup load_simulation_setup(std::string const &path)
         int steps = engine_node["steps"].as<int>();
         fragment_shader_name = engine_node["shader"].as<std::string>();
         std::string texture_name = engine_node["texture"].as<std::string>();
-        engine = std::make_unique<FragmentShaderEngine>(fragment_shader_name, texture_name, steps);
+        auto fragment_engine = std::make_unique<FragmentShaderEngine>(fragment_shader_name, texture_name, steps);
+        fragment_engine_for_control = fragment_engine.get();
+        engine = std::move(fragment_engine);
     }
     else if (engine_name == "ComputeShaderEngine")
     {
         std::unique_ptr<ComputeShaderEngine> compute_engine = std::make_unique<ComputeShaderEngine>();
+        compute_engine_for_control = compute_engine.get();
         for (auto step : engine_node["steps"])
         {
             std::string shader_name = step["name"].as<std::string>();
@@ -161,8 +166,7 @@ SimulationSetup load_simulation_setup(std::string const &path)
 
     // Create the options controllers
     if (engine_name == "FragmentShaderEngine") {
-        auto fragment_engine = dynamic_cast<FragmentShaderEngine*>(engine.get());
-        simulation_setup.add_controller_back(std::make_unique<EngineControl>(*fragment_engine, fragment_shader_name));
+        simulation_setup.add_controller_back(std::make_unique<EngineControl>(*fragment_engine_for_control, fragment_shader_name));
     }
     for (auto controller_node : config["controllers"])
     {
@@ -201,7 +205,10 @@ SimulationSetup load_simulation_setup(std::string const &path)
         }
         else if (controller_name == "Shader")
         {
-            simulation_setup.add_controller_back(std::make_unique<ShaderControl>());
+            if (compute_engine_for_control)
+                simulation_setup.add_controller_back(std::make_unique<ShaderControl>(*compute_engine_for_control));
+            else
+                simulation_setup.add_controller_back(std::make_unique<ShaderControl>());
         }
         else
         {

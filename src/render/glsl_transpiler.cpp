@@ -1,5 +1,6 @@
 #include "glsl_transpiler.hpp"
 
+#include <stdint.h>
 #include <sstream>
 
 using namespace GLSL;

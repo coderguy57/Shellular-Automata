@@ -414,7 +414,8 @@ void MutationControlNN::update(Data& data)
 {
     auto& program_data = data.get_element<FragmentProgramData>(_fragment_name);
     auto& program = program_data.get_program();
-    program.use();
+    if (!program.use())
+        return;
 
     ImGuiIO &io = ImGui::GetIO();
     ImVec2 screen_size = io.DisplaySize;

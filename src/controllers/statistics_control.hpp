@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include "gui_control.hpp"
@@ -27,18 +28,14 @@ private:
 
     int _area = 1;
     bool _show_histogram = false;
-    ComputeProgram *_histogram_calc;
+    std::unique_ptr<ComputeProgram> _histogram_calc;
     std::vector<int> _r_histogram;
     std::vector<int> _g_histogram;
     std::vector<int> _b_histogram;
-        
-    Buffer<int> red = Buffer<int>(256);
-    Buffer<int> blue = Buffer<int>(256);
-    Buffer<int> green = Buffer<int>(256);
 
     bool _show_dft = false;
-    ComputeProgram *_dft_calc_x;
-    ComputeProgram *_dft_calc_y;
-    Texture *_dft_tex_part;
-    Texture *_dft_tex;
+    std::unique_ptr<ComputeProgram> _dft_calc_x;
+    std::unique_ptr<ComputeProgram> _dft_calc_y;
+    std::unique_ptr<Texture> _dft_tex_part;
+    std::unique_ptr<Texture> _dft_tex;
 };

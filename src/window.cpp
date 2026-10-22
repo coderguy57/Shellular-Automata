@@ -7,6 +7,7 @@
 #include <vector>
 #include <chrono>
 #include <atomic>
+#include <thread>
 
 #include "simulation_setup.hpp"
 #include "simulation_setup_loader.hpp"
@@ -25,7 +26,7 @@ static void glfw_error_callback(int error, const char *description)
 }
 double clockToMilliseconds(std::chrono::nanoseconds ticks)
 {
-    return (ticks / std::chrono::milliseconds(1)) * 1000.0;
+    return std::chrono::duration<double, std::milli>(ticks).count();
 }
 
 Window::Window(int width, int height)
@@ -48,7 +49,7 @@ Window::Window(int width, int height)
     if (_window == NULL)
         throw "Failed to create window\n";
     glfwMakeContextCurrent(_window);
-    glfwSwapInterval(0); // Enable vsync
+    glfwSwapInterval(1); // Enable vsync
 
     if (glewInit() != GLEW_OK)
         throw "Failed to init glew\n";
@@ -76,7 +77,8 @@ void Window::run(SimulationSetup simulation)
 {
     unsigned int frames = 0;
     double frameRate = 30;
-    double averageFrameTimeMilliseconds = 33.333;
+    constexpr double targetFrameRate = 120.0;
+    const auto targetFrameDuration = std::chrono::duration<double>(1.0 / targetFrameRate);
 
     // Our state
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -89,10 +91,8 @@ void Window::run(SimulationSetup simulation)
     simulation.add_controller_front(std::make_unique<WindowControl>(is_quit, is_paused, new_simulation_setup));
 
     // Main loop
-    auto beginFrame = std::chrono::steady_clock::now();
-    auto endFrame = std::chrono::steady_clock::now();
-    auto renderTime = std::chrono::steady_clock::now();
-    auto deltaTime = endFrame - beginFrame;
+    auto nextFrameTime = std::chrono::steady_clock::now();
+    auto frameRateTimer = nextFrameTime;
     while (!glfwWindowShouldClose(_window))
     {
         if (is_quit)
@@ -106,23 +106,6 @@ void Window::run(SimulationSetup simulation)
             new_simulation_setup = "";
         }
 
-        endFrame = std::chrono::steady_clock::now();
-        if (!is_paused)
-        {
-            deltaTime += endFrame - beginFrame;
-            frames++;
-        }
-        beginFrame = std::chrono::steady_clock::now();
-
-        if (clockToMilliseconds(deltaTime) > 1000.0)
-        {                                                       // every second
-            frameRate = (double)frames * 0.5 + frameRate * 0.5; // more stable
-            frames = 0;
-            deltaTime -= std::chrono::seconds(1);
-            averageFrameTimeMilliseconds = 1000.0 / (frameRate == 0 ? 0.001 : frameRate);
-
-            std::cout << "FrameTime was:" << frameRate << std::endl;
-        }
         glfwPollEvents();
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -149,17 +132,36 @@ void Window::run(SimulationSetup simulation)
 
         ImGui::Render();
 
-        auto currentTime = std::chrono::steady_clock::now();
-        if (clockToMilliseconds(currentTime - renderTime) > 1000.0 / 60.0) {
-            renderTime = std::chrono::steady_clock::now();
-            // Rendering
-            int display_w, display_h;
-            glfwGetFramebufferSize(_window, &display_w, &display_h);
-                simulation.viewer().view(display_w, display_h, simulation.data());
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        // Rendering
+        int display_w, display_h;
+        glfwGetFramebufferSize(_window, &display_w, &display_h);
+        simulation.viewer().view(display_w, display_h, simulation.data());
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-            glfwSwapBuffers(_window);
+        glfwSwapBuffers(_window);
+
+        frames++;
+        auto currentTime = std::chrono::steady_clock::now();
+        if (clockToMilliseconds(currentTime - frameRateTimer) > 1000.0)
+        {
+            const auto elapsedSeconds = std::chrono::duration<double>(currentTime - frameRateTimer).count();
+            frameRate = (static_cast<double>(frames) / elapsedSeconds) * 0.5 + frameRate * 0.5;
+            frames = 0;
+            frameRateTimer = currentTime;
+
+            std::cout << "FrameRate was: " << frameRate << std::endl;
+        }
+
+        nextFrameTime += std::chrono::duration_cast<std::chrono::steady_clock::duration>(targetFrameDuration);
+        currentTime = std::chrono::steady_clock::now();
+        if (currentTime < nextFrameTime)
+        {
+            std::this_thread::sleep_until(nextFrameTime);
+        }
+        else
+        {
+            nextFrameTime = currentTime;
         }
     }
 

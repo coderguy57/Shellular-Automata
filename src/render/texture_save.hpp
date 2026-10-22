@@ -129,13 +129,13 @@ std::optional<TextureBuffer<T>> save_texture_directly(const Texture& texture, co
     buffer.height = texture.height;
     buffer.depth = texture.depth;
     buffer.channels = channels;
-    buffer.data = std::make_unique<T[]>(buffer.width * buffer.height * buffer.channels);
+    buffer.data = std::make_unique<T[]>(buffer.size());
 
     // Read the texture data
-    glGetTexImage(GL_TEXTURE_2D_ARRAY, 0, options.format, options.type, buffer.data.get());
+    glGetTexImage(texture.target, 0, options.format, options.type, buffer.data.get());
 
     // Unbind the texture
-    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+    glBindTexture(texture.target, 0);
 
     return buffer;
 }

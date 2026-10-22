@@ -14,11 +14,11 @@ void main() {
 
   float norm = length(wavenumber);
 
-  ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+  ivec3 coord = ivec3(gl_GlobalInvocationID);
   float factor = 1.0/128.0;
   factor = exp(-factor * norm * norm);
   vec4 value = vec4(1.0, 1.0, 1.0, 1.0);
   value.rgb *= factor;
 
-  imageStore(out_tex, ivec3(coord, 0), value);
+  imageStore(out_tex, coord, value);
 }

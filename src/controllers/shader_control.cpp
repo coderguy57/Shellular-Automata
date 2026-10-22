@@ -7,10 +7,16 @@
 #include "render/shader.hpp"
 #include "render/glsl_transpiler.hpp"
 #include "data.hpp"
+#include "engines/compute_shader_engine.hpp"
 
-void ShaderControl::draw_shader_options(std::string name, FragmentProgram &fragment_program)
+ShaderControl::ShaderControl(ComputeShaderEngine& compute_engine)
+    : compute_engine_{&compute_engine}
 {
-    for (GLSL::IOption *option : fragment_program.get_options())
+}
+
+void ShaderControl::draw_options(std::string const& name, std::vector<GLSL::IOption*> const& options)
+{
+    for (GLSL::IOption *option : options)
     {
         ImGui::PushID((name + "#" + option->label).c_str());
         if (option->type == GLSL::IOption::Type::Float)
@@ -44,17 +50,43 @@ void ShaderControl::draw_shader_options(std::string name, FragmentProgram &fragm
     }
 }
 
+void ShaderControl::draw_shader_options(std::string name, FragmentProgram &fragment_program)
+{
+    draw_options(name, fragment_program.get_options());
+}
+
+void ShaderControl::draw_shader_options(std::string name, ComputeProgram& compute_program)
+{
+    draw_options(name, compute_program.get_options());
+}
+
 void ShaderControl::draw_shader_options_menu()
 {
     ImGui::Begin("Shader options", &show_shader_options_,
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
 
-    data_->for_each_element<FragmentProgramData>(
-        [&](std::string name, FragmentProgramData &program_data)
-        {
-            if (ImGui::CollapsingHeader(name.c_str()))
-                draw_shader_options(name, program_data.get_program());
-        });
+    if (data_) {
+        data_->for_each_element<FragmentProgramData>(
+            [&](std::string name, FragmentProgramData &program_data)
+            {
+                if (ImGui::CollapsingHeader(name.c_str()))
+                    draw_shader_options(name, program_data.get_program());
+            });
+    }
+
+    if (compute_engine_) {
+        int index = 0;
+        for (auto* step : compute_engine_->compute_steps()) {
+            auto& program = step->program();
+            auto options = program.get_options();
+            if (!options.empty()) {
+                std::string name = std::to_string(index) + ": " + step->shader_name();
+                if (ImGui::CollapsingHeader(name.c_str()))
+                    draw_shader_options(name, program);
+            }
+            index++;
+        }
+    }
 
     ImGui::End();
 }

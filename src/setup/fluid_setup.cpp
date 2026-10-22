@@ -83,8 +83,7 @@ static void create_ifft_step(ComputeShaderEngine* engine, TextureData* input, Te
 }
 
 static void multiply(ComputeShaderEngine* engine, TextureData* input1, TextureData* input2, TextureData* output) {
-    create_compute_shader_step(engine, "fluidMNCA/multiply.cs", {input1, input2}, {output})
-        ->set_option("layers", input1->get_texture().depth);
+    create_compute_shader_step(engine, "fluid2D/multiply.cs", {input1, input2}, {output});
 }
 
 SimulationSetup setup_fluid() {
@@ -94,64 +93,30 @@ SimulationSetup setup_fluid() {
     options.internal_format = GL_RGBA32F;
     int x_size = 512;
     int y_size = 512;
-    int z_size = 2;
     auto data_texture = data.add_element<TextureData>("texture", x_size, y_size, 2, options);
     auto temp_texture = data.add_element<TextureData>("temp_texture", x_size, y_size, 2, options);
-    auto force_texture = data.add_element<TextureData>("force_texture", x_size, y_size, 2, options);
-    auto force_texture2 = data.add_element<TextureData>("force_texture2", x_size, y_size, 2, options);
     auto temp_texture2 = data.add_element<TextureData>("temp_texture2", x_size, y_size, 2, options);
-    auto temp_fft = data.add_element<TextureData>("fft_texture", x_size, y_size, z_size * 2, options);
-
-    auto gaussian_fft = data.add_element<TextureData>("gaussian", x_size, y_size, z_size * 2, options);
-    {
-        std::unique_ptr<ComputeShaderEngine> pre_engine = std::make_unique<ComputeShaderEngine>();
-        create_compute_shader_step(pre_engine.get(), "fluid2D/create_gaus.cs", {}, {temp_texture});
-        // create_compute_shader_step(pre_engine.get(), "fluid2D/create_gaus2.cs", {}, {temp_texture2});
-        create_fft_step(pre_engine.get(), temp_texture, gaussian_fft);
-        // create_ifft_step(pre_engine.get(), gaussian_fft, force_texture2);
-        pre_engine->step(data);
-    }
 
     std::unique_ptr<ComputeShaderEngine> engine = std::make_unique<ComputeShaderEngine>();
 
+    create_compute_shader_step(engine.get(), "fluid2D/copy.cs", {data_texture}, {temp_texture});
+    create_compute_shader_step(engine.get(), "fluid2D/diffusion.cs", {data_texture, temp_texture}, {data_texture}, 20);
 
+    create_compute_shader_step(engine.get(), "fluid2D/div.cs", {data_texture}, {temp_texture});
+    create_compute_shader_step(engine.get(), "fluid2D/clear.cs", {}, {temp_texture2});
+    create_compute_shader_step(engine.get(), "fluid2D/lin_solve.cs", {temp_texture2, temp_texture}, {temp_texture2}, 20);
+    create_compute_shader_step(engine.get(), "fluid2D/project.cs", {data_texture, temp_texture2}, {data_texture});
 
-    create_fft_step(engine.get(), temp_texture2, temp_fft);
-    create_compute_shader_step(engine.get(), "fluid2D/multiply.cs", {gaussian_fft, temp_fft}, {temp_fft});
-    create_ifft_step(engine.get(), temp_fft, force_texture2);
-    // create_compute_shader_step(engine.get(), "fluid2D/clear.cs", {}, {force_texture2});
-    // create_compute_shader_step(engine.get(), "fluid2D/copy.cs", {force_texture}, {force_texture2});
-    // create_compute_shader_step(engine.get(), "fluid2D/add_forces.cs", {force_texture, force_texture2}, {force_texture2});
+    create_compute_shader_step(engine.get(), "fluid2D/advect_vel.cs", {data_texture}, {data_texture});
 
-    // create_ifft_step(engine.get(), gaussian_fft, force_texture2);
+    create_compute_shader_step(engine.get(), "fluid2D/div.cs", {data_texture}, {temp_texture});
+    create_compute_shader_step(engine.get(), "fluid2D/clear.cs", {}, {temp_texture2});
+    create_compute_shader_step(engine.get(), "fluid2D/lin_solve.cs", {temp_texture2, temp_texture}, {temp_texture2}, 20);
+    create_compute_shader_step(engine.get(), "fluid2D/project.cs", {data_texture, temp_texture2}, {data_texture});
 
-    // create_compute_shader_step(engine.get(), "fluid2D/div.cs", {force_texture}, {temp_texture});
-    // create_compute_shader_step(engine.get(), "fluid2D/clear.cs", {}, {temp_texture2});
-    // create_compute_shader_step(engine.get(), "fluid2D/lin_solve.cs", {temp_texture2, temp_texture}, {temp_texture2}, 100);
-    // create_compute_shader_step(engine.get(), "fluid2D/project.cs", {force_texture, temp_texture2}, {force_texture});
+    create_compute_shader_step(engine.get(), "fluid2D/advect.cs", {data_texture}, {data_texture});
 
-    // create_compute_shader_step(engine.get(), "fluid2D/add_forces.cs", {force_texture, data_texture}, {data_texture});
-
-
-    // create_compute_shader_step(engine.get(), "fluid2D/copy.cs", {data_texture}, {temp_texture});
-    // create_compute_shader_step(engine.get(), "fluid2D/diffusion.cs", {data_texture, temp_texture}, {data_texture}, 20);
-
-    // create_compute_shader_step(engine.get(), "fluid2D/div.cs", {data_texture}, {temp_texture});
-    // create_compute_shader_step(engine.get(), "fluid2D/clear.cs", {}, {temp_texture2});
-    // create_compute_shader_step(engine.get(), "fluid2D/lin_solve.cs", {temp_texture2, temp_texture}, {temp_texture2}, 20);
-
-    // create_compute_shader_step(engine.get(), "fluid2D/project.cs", {data_texture, temp_texture2}, {data_texture});
-
-    // create_compute_shader_step(engine.get(), "fluid2D/advect_vel.cs", {data_texture}, {data_texture});
-
-    // create_compute_shader_step(engine.get(), "fluid2D/div.cs", {data_texture}, {temp_texture});
-    // create_compute_shader_step(engine.get(), "fluid2D/clear.cs", {}, {temp_texture2});
-    // create_compute_shader_step(engine.get(), "fluid2D/lin_solve.cs", {temp_texture2, temp_texture}, {temp_texture2}, 20);
-
-    // create_compute_shader_step(engine.get(), "fluid2D/advect.cs", {data_texture}, {data_texture});
-
-    // std::string view_shader = "fluid2D/fluid_viewer.fs";
-    std::string view_shader = "viewer.fs";
+    std::string view_shader = "fluid2D/fluid_viewer.fs";
     std::string output_shader = "basic.fs";
     auto& texture = data_texture->get_texture();
     auto size = texture.get_size();
@@ -163,15 +128,16 @@ SimulationSetup setup_fluid() {
         view_shader, 
         output_shader, 
         data_texture->get_texture().options.internal_format, 
-        *gaussian_fft);
+        "texture");
 
+    auto* compute_engine = engine.get();
     SimulationSetup simulation_setup(std::move(engine), std::move(viewer), std::move(data));
 
     simulation_setup.add_controller_back(std::make_unique<InitTextureControl>("init.cs", *data_texture));
 
     simulation_setup.add_controller_back(std::make_unique<PaintControl>("fluid2D/paint_vel.cs", *data_texture));
 
-    simulation_setup.add_controller_back(std::make_unique<ShaderControl>());
+    simulation_setup.add_controller_back(std::make_unique<ShaderControl>(*compute_engine));
 
     return simulation_setup;
 }

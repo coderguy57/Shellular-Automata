@@ -3,7 +3,7 @@ message(STATUS "Fetching yaml...")
 FetchContent_Declare(
 	yaml
 	GIT_REPOSITORY https://github.com/jbeder/yaml-cpp
-	GIT_TAG		   yaml-cpp-0.7.0
+	GIT_TAG		   yaml-cpp-0.9.0
 )
 
 FetchContent_MakeAvailable(yaml)

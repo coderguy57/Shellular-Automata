@@ -12,7 +12,7 @@ float get_demand(int x, int y) {
     ivec3 image_size = imageSize(demand);
 
     ivec3 coord = ivec3(gl_GlobalInvocationID.xyz) + ivec3(x, y, 0);
-    coord = coord % image_size;
+    coord = (coord % image_size + image_size) % image_size;
     return imageLoad(demand, coord).z;
 }
 

@@ -3,7 +3,7 @@
 uniform sampler2DArray in_tex;
 writeonly uniform image2D out_tex;
 
-#define SIZE 1024
+#define SIZE 512
 
 #define PI 3.14159265358979323844
 

@@ -97,7 +97,8 @@ void PaintControl::update(Data &data)
     {
         if (compute_program_)
         {
-            compute_program_->use();
+            if (!compute_program_->use())
+                return;
             auto &data_element = data.get_element<TextureData>(texture_name_);
             auto &texture = data_element.get_texture();
             data_element.bind(0);

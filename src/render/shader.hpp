@@ -32,7 +32,7 @@ public:
     virtual ~Shader();
 
     inline GLuint get_id() const { return _id; };
-    inline void recompile() { _success = compile(_type); };
+    inline void recompile() { _success = ctx && compile(_type); };
     inline bool is_success() const { return _success; };
     std::vector<GLSL::IOption *> get_options() const;
 };
@@ -62,10 +62,14 @@ class Program
 {
 protected:
     GLuint _id = 0;
+    mutable bool _linked = false;
+    std::string _debug_name;
+    bool link_program(const std::string& debug_name) const;
 
 public:
     Program(){};
     ~Program();
+    bool is_linked() const;
     void set_uniform(const std::string &name, glm::mat4 uniform) const;
     void set_uniform(const std::string &name, float value) const;
     void set_uniform(const std::string &name, float value1, float value2) const;
@@ -73,6 +77,7 @@ public:
     void set_uniform(const std::string &name, float value1, float value2, float value3, float value4) const;
     void set_uniform(const std::string &name, int value) const;
     void set_uniform(const std::string &name, uint32_t uniform) const;
+    void set_uniform(const std::string &name, bool value) const;
     void set_uniform(const std::string &name, int size, const uint32_t *vector) const;
     void set_uniform(const std::string &name, bool value1, bool value2) const;
     void set_texture(int value, const std::string &name, const Texture *texture) const;
@@ -82,33 +87,33 @@ public:
 
 class FragmentProgram : public Program
 {
-    VertexShader *_v_shader;
-    FragmentShader *_f_shader;
+    VertexShader *_v_shader = nullptr;
+    FragmentShader *_f_shader = nullptr;
     bool _success = false;
 
 public:
     FragmentProgram(const std::string &vertex, const std::string &fragment);
     ~FragmentProgram();
-    void use() const;
+    bool use() const;
 
     inline bool is_success() const { return _success; };
-    inline std::vector<GLSL::IOption *> get_options() const { return _f_shader->get_options(); };
+    inline std::vector<GLSL::IOption *> get_options() const { return _f_shader ? _f_shader->get_options() : std::vector<GLSL::IOption *>{}; };
 };
 
 class ComputeProgram : public Program
 {
-    ComputeShader *_c_shader;
+    ComputeShader *_c_shader = nullptr;
 
 public:
     ComputeProgram(const std::string &compute);
     ~ComputeProgram();
-    void use() const;
+    bool use() const;
     void run(int x, int y, int z) const;
-    int local_size_x() { return _c_shader->local_size_x(); }
-    int local_size_y() { return _c_shader->local_size_y(); }
-    int local_size_z() { return _c_shader->local_size_z(); }
+    int local_size_x() { return _c_shader ? _c_shader->local_size_x() : 1; }
+    int local_size_y() { return _c_shader ? _c_shader->local_size_y() : 1; }
+    int local_size_z() { return _c_shader ? _c_shader->local_size_z() : 1; }
 
-    inline std::vector<GLSL::IOption *> get_options() const { return _c_shader->get_options(); };
+    inline std::vector<GLSL::IOption *> get_options() const { return _c_shader ? _c_shader->get_options() : std::vector<GLSL::IOption *>{}; };
 };
 
 template <typename T>
@@ -161,8 +166,11 @@ public:
     {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, _id);
         T *ptr = (T *)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+        std::vector<T> data;
+        if (ptr)
+            data.assign(ptr, ptr + _size);
         glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-        return std::vector<T>(ptr, ptr + _size);
+        return data;
     }
 };
