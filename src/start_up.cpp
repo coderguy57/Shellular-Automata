@@ -9,7 +9,7 @@ int main(int, char **)
 {
     Window window{768, 768};
     // auto simulation = load_simulation_setup("slackerman.yaml");
-    auto simulation = setup_conservative();
+    auto simulation = setup_neural_mnca();
     // auto simulation = load_simulation_setup("fluidMNCA.yaml");
     // auto simulation = setup_fluid();
     window.run(std::move(simulation));

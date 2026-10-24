@@ -1,21 +1,18 @@
 #include "shader_control.hpp"
 
-#include <filesystem>
+#include <utility>
 #include "imgui.h"
-#include "imgui_stdlib.h"
-#include "render/texture.hpp"
 #include "render/shader.hpp"
 #include "render/glsl_transpiler.hpp"
 #include "data.hpp"
 #include "engines/compute_shader_engine.hpp"
 
-ShaderControl::ShaderControl(ComputeShaderEngine& compute_engine)
-    : compute_engine_{&compute_engine}
+namespace {
+void draw_shader_options(std::string const& name, std::vector<GLSL::IOption*> const& options)
 {
-}
+    if (options.empty() || !ImGui::CollapsingHeader(name.c_str()))
+        return;
 
-void ShaderControl::draw_options(std::string const& name, std::vector<GLSL::IOption*> const& options)
-{
     for (GLSL::IOption *option : options)
     {
         ImGui::PushID((name + "#" + option->label).c_str());
@@ -49,15 +46,16 @@ void ShaderControl::draw_options(std::string const& name, std::vector<GLSL::IOpt
         ImGui::PopID();
     }
 }
-
-void ShaderControl::draw_shader_options(std::string name, FragmentProgram &fragment_program)
-{
-    draw_options(name, fragment_program.get_options());
 }
 
-void ShaderControl::draw_shader_options(std::string name, ComputeProgram& compute_program)
+ShaderControl::ShaderControl(ComputeShaderEngine& compute_engine)
+    : compute_engine_{&compute_engine}
 {
-    draw_options(name, compute_program.get_options());
+}
+
+ShaderControl::ShaderControl(std::vector<Entry> entries)
+    : entries_{std::move(entries)}
+{
 }
 
 void ShaderControl::draw_shader_options_menu()
@@ -65,26 +63,36 @@ void ShaderControl::draw_shader_options_menu()
     ImGui::Begin("Shader options", &show_shader_options_,
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
 
-    if (data_) {
-        data_->for_each_element<FragmentProgramData>(
-            [&](std::string name, FragmentProgramData &program_data)
-            {
-                if (ImGui::CollapsingHeader(name.c_str()))
-                    draw_shader_options(name, program_data.get_program());
-            });
-    }
-
-    if (compute_engine_) {
+    if (entries_) {
         int index = 0;
-        for (auto* step : compute_engine_->compute_steps()) {
-            auto& program = step->program();
-            auto options = program.get_options();
-            if (!options.empty()) {
+        for (const auto& entry : *entries_) {
+            ImGui::PushID(index++);
+            std::visit([&](auto* program) {
+                if (program)
+                    draw_shader_options(entry.label, program->get_options());
+            }, entry.program);
+            ImGui::PopID();
+        }
+    } else {
+        if (data_) {
+            data_->for_each_element<FragmentProgramData>(
+                [&](std::string name, FragmentProgramData &program_data)
+                {
+                    ImGui::PushID(&program_data);
+                    draw_shader_options(name, program_data.get_program().get_options());
+                    ImGui::PopID();
+                });
+        }
+
+        if (compute_engine_) {
+            int index = 0;
+            for (auto* step : compute_engine_->compute_steps()) {
                 std::string name = std::to_string(index) + ": " + step->shader_name();
-                if (ImGui::CollapsingHeader(name.c_str()))
-                    draw_shader_options(name, program);
+                ImGui::PushID(step);
+                draw_shader_options(name, step->program().get_options());
+                ImGui::PopID();
+                index++;
             }
-            index++;
         }
     }
 

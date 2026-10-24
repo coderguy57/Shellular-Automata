@@ -1,4 +1,5 @@
 #include "window_control.hpp"
+#include "detail/shortcuts.hpp"
 
 #include <filesystem>
 #include <algorithm>
@@ -43,14 +44,13 @@ void WindowControl::draw_change_setup()
 
 void WindowControl::draw()
 {
-    if (ImGui::IsKeyPressed(' ') || ImGui::IsKeyPressed('9'))
-    {
-        is_paused_ = !is_paused_;
-    }
-    if (ImGui::IsKeyPressed('0'))
-    {
-        is_paused_ = false;
-        step_ = true;
+    if (controller_detail::shortcuts_allowed()) {
+        if (ImGui::IsKeyPressed(' ', false) || ImGui::IsKeyPressed('9', false))
+            is_paused_ = !is_paused_;
+        if (ImGui::IsKeyPressed('0', false)) {
+            is_paused_ = false;
+            step_ = true;
+        }
     }
     if (ImGui::BeginMainMenuBar())
     {

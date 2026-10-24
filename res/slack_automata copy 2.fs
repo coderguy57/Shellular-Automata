@@ -252,5 +252,5 @@ void main() {
 	//	Force alpha to 1.0
 	res_c[3] = 1.0;
 
-	out_col = res_c;
+	out_col = clamp(res_c, 0.0, 1.0);
 }

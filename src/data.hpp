@@ -24,7 +24,6 @@ public:
 class TextureData : public DataElement {
 public:
     TextureData(uint32_t width, uint32_t height, uint32_t depth, TextureOptions options = default_options);
-    TextureData(Texture&& texture);
     void bind(GLuint layout) override;
     void bind_out(GLuint layout) override;
     GLuint memory_barrier_bits() override {

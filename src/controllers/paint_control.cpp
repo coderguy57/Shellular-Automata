@@ -1,5 +1,7 @@
 #include "paint_control.hpp"
 
+#include <algorithm>
+
 #include "imgui.h"
 #include "render/shader.hpp"
 #include "data.hpp"
@@ -32,7 +34,8 @@ void PaintControl::draw_options()
     // ImGui::SetNextItemWidth(112);
     ImGui::SliderInt("Size", &cursor_size_, 1, 128);
     ImGui::Checkbox("Smooth", &cursor_smooth_);
-    ImGui::SliderInt("Layer", &layer_, 0, 3);
+    if (layer_count_ > 1)
+        ImGui::SliderInt("Layer", &layer_, 0, layer_count_ - 1);
 
     ImGui::PushID("Red Mask");
     ImGui::Checkbox("", &color_mask_.r);
@@ -78,6 +81,10 @@ void PaintControl::draw()
 void PaintControl::update(Data &data)
 {
     ImGuiIO &io = ImGui::GetIO();
+    if (io.DisplaySize.x <= 0.0f || io.DisplaySize.y <= 0.0f) {
+        was_painting_ = false;
+        return;
+    }
     glm::vec2 screen_size = glm::vec2(io.DisplaySize.x, io.DisplaySize.y);
     glm::vec2 cursor_pos = glm::vec2(io.MousePos.x, io.MousePos.y);
     cursor_pos.x = cursor_pos.x / screen_size.x;
@@ -92,72 +99,33 @@ void PaintControl::update(Data &data)
     }
 
     auto &texture_data = data.get_element<TextureData>(texture_name_);
-    auto &last_texture = texture_data.get_last_texture();
-    if (left_click || right_click)
+    layer_count_ = texture_data.depth();
+    layer_ = std::min(layer_, layer_count_ - 1);
+    if ((left_click || right_click) && compute_program_)
     {
-        if (compute_program_)
-        {
-            if (!compute_program_->use())
-                return;
-            auto &data_element = data.get_element<TextureData>(texture_name_);
-            auto &texture = data_element.get_texture();
-            data_element.bind(0);
-            data_element.bind_out(1);
-            GLuint memory_barrier_bits = data_element.memory_barrier_bits();
+        if (!compute_program_->use())
+            return;
+        auto &data_element = data.get_element<TextureData>(texture_name_);
+        auto &texture = data_element.get_texture();
+        data_element.bind(0);
+        data_element.bind_out(1);
+        GLuint memory_barrier_bits = data_element.memory_barrier_bits();
 
-            compute_program_->set_uniform("paint_mask", color_mask_.r, color_mask_.g, color_mask_.b);
-            compute_program_->set_uniform("cursor_pos", cursor_pos.x, cursor_pos.y);
-            compute_program_->set_uniform("last_cursor_pos", last_cursor_pos_.x, last_cursor_pos_.y);
-            compute_program_->set_uniform("mlr", left_click, right_click);
-            compute_program_->run(texture.width / compute_program_->local_size_x(), texture.height / compute_program_->local_size_y(), texture.depth / compute_program_->local_size_z());
-            if (memory_barrier_bits != 0)
-                glMemoryBarrier(memory_barrier_bits);
-            data_element.update();
-        }
-        // else
-        // {
-        //     auto &program_data = data.get_element<FragmentProgramData>(fragment_name_);
-        //     auto &program = program_data.get_program();
-
-        //     glViewport(0, 0, last_texture.width, last_texture.height);
-        //     fbo_->use();
-        //     program.use();
-        //     std::vector<GLenum> buffers;
-        //     for (size_t i = 0; i < last_texture.depth; i++)
-        //     {
-        //         buffers.push_back(GL_COLOR_ATTACHMENT0 + i);
-        //     }
-
-        //     glDrawBuffers(last_texture.depth, &buffers[0]);
-        //     fbo_->set_texture(0, &last_texture);
-
-        //     program.set_uniform("cursor_pos", cursor_pos.x, cursor_pos.y);
-        //     program.set_uniform("last_cursor_pos", last_cursor_pos_.x, last_cursor_pos_.y);
-        //     program.set_uniform("mlr", left_click, right_click);
-        //     program.set_uniform("paint_color", color_.r, color_.g, color_.b);
-        //     glm::vec3 color_mask = glm::vec3(0);
-        //     program.set_uniform("paint_mask", color_mask_.r, color_mask_.g, color_mask_.b);
-        //     program.set_uniform("paint_size", cursor_size_);
-        //     program.set_uniform("paint_smooth", cursor_smooth_);
-        //     program.set_uniform("paint_layer", layer_);
-
-        //     surface_->draw();
-        //     glFinish();
-
-        //     texture_data.update();
-        // }
+        compute_program_->set_uniform("paint_mask", color_mask_.r, color_mask_.g, color_mask_.b);
+        compute_program_->set_uniform("paint_color", color_.r, color_.g, color_.b);
+        compute_program_->set_uniform("paint_size", cursor_size_);
+        compute_program_->set_uniform("paint_smooth", cursor_smooth_);
+        compute_program_->set_uniform("paint_layer", layer_);
+        compute_program_->set_uniform("cursor_pos", cursor_pos.x, cursor_pos.y);
+        auto stroke_start = was_painting_ ? last_cursor_pos_ : cursor_pos;
+        compute_program_->set_uniform("last_cursor_pos", stroke_start.x, stroke_start.y);
+        compute_program_->set_uniform("mlr", left_click, right_click);
+        compute_program_->run(texture.width / compute_program_->local_size_x(), texture.height / compute_program_->local_size_y(), texture.depth / compute_program_->local_size_z());
+        if (memory_barrier_bits != 0)
+            glMemoryBarrier(memory_barrier_bits);
+        data_element.update();
     }
-    // if (!compute_program_) {
-    //     auto &program_data = data.get_element<FragmentProgramData>(fragment_name_);
-    //     auto &program = program_data.get_program();
-    //     program.use();
-    //     program.set_uniform("mlr", left_click, right_click);
-    //     program.set_uniform("paint_color", color_.r, color_.g, color_.b);
-    //     program.set_uniform("paint_mask", color_mask_.r, color_mask_.g, color_mask_.b);
-    //     program.set_uniform("paint_size", cursor_size_);
-    //     program.set_uniform("paint_smooth", cursor_smooth_);
-    //     program.set_uniform("paint_layer", layer_);
-    // }
 
     last_cursor_pos_ = cursor_pos;
+    was_painting_ = left_click || right_click;
 }

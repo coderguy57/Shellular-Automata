@@ -1,10 +1,12 @@
 #include "controllers/init_texture_control.hpp"
+#include "detail/shortcuts.hpp"
 
 #include "imgui.h"
 #include "imgui_stdlib.h"
 #include "data.hpp"
 #include "render/shader.hpp"
 #include "render/framebuffer.hpp"
+#include "render/detail/fullscreen_pass.hpp"
 #include "render/renderSurface.hpp"
 
 InitTextureControl::InitTextureControl(std::string shader_name, std::string texture_name)
@@ -21,14 +23,9 @@ InitTextureControl::InitTextureControl(std::string shader_name, std::string text
 
 void InitTextureControl::draw()
 {
-    if (ImGui::IsKeyPressed('Q'))
-    {
+    if (controller_detail::shortcuts_allowed() &&
+        (ImGui::IsKeyPressed('Q', false) || ImGui::IsKeyPressed('V', false)))
         init_ = true;
-    }
-    if (ImGui::IsKeyPressed('V'))
-    {
-        init_ = true;
-    }
     if (ImGui::BeginMainMenuBar())
     {
         if (ImGui::BeginMenu("Texture init"))
@@ -69,12 +66,12 @@ void InitTextureControl::update(Data& data)
             auto& program_data = data.get_element<FragmentProgramData>(fragment_name_);
             auto& program = program_data.get_program();
 
-            glViewport(0, 0, last_texture.width, last_texture.height);
             fbo_->use();
             if (!program.use()) {
                 init_ = false;
                 return;
             }
+            render_detail::setup_fullscreen_pass(last_texture.width, last_texture.height);
             std::vector<GLenum> buffers;
             for (size_t i = 0; i < last_texture.depth; i++)
             {

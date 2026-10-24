@@ -1,5 +1,6 @@
 #include "viewer.hpp"
 #include "data.hpp"
+#include "render/detail/fullscreen_pass.hpp"
 
 Viewer::Viewer(uint32_t width, uint32_t height, uint32_t depth, std::string frag_path, std::string output_shader, GLuint internal_format, std::string texture_name)
     : _frag_path{frag_path} {
@@ -44,10 +45,10 @@ void Viewer::view(uint32_t width, uint32_t height, Data& data) {
     }
 
     {
-        glViewport(0, 0, texture.width, texture.height);
         if (!program->use())
             return;
         _fbo->use();
+        render_detail::setup_fullscreen_pass(texture.width, texture.height);
 
         _tex0_last_drawn = !_tex0_last_drawn;
 
@@ -56,11 +57,13 @@ void Viewer::view(uint32_t width, uint32_t height, Data& data) {
         _fbo->set_texture(0, _tex0_last_drawn ? *_tex1 : *_tex0);
         program->set_texture(0, "prev_tex", _tex0_last_drawn ? _tex0 : _tex1);
         program->set_texture(1, "tex", &texture);
+        glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
         _surface->draw();
     }
 
-    glViewport(0, 0, width, height);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDrawBuffer(GL_BACK);
+    render_detail::setup_fullscreen_pass(width, height);
     if (!output_program->use())
         return;
     output_program->set_texture(0, "tex", _tex0_last_drawn ? _tex1 : _tex0);

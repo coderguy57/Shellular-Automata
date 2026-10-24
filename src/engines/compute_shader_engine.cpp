@@ -2,6 +2,7 @@
 
 #include "render/shader.hpp"
 #include "render/texture.hpp"
+#include "render/detail/fullscreen_pass.hpp"
 #include "data.hpp"
 
 void ComputeShaderEngine::step(Data &data)
@@ -40,10 +41,10 @@ void FragmentShaderStep::do_step(Data &data)
     auto& program_data = data.get_element<FragmentProgramData>(fragment_name_);
     auto& program = program_data.get_program();
     auto& texture_data = data.get_element<TextureData>(output_);
-    glViewport(0, 0, texture_data.get_texture().width, texture_data.get_texture().height);
     if (!program.use())
         return;
     fbo_->use();
+    render_detail::setup_fullscreen_pass(texture_data.width(), texture_data.height());
     for (uint32_t stage = 0; stage < stages_; stage++)
     {
         auto& texture = texture_data.get_texture();
@@ -58,6 +59,7 @@ void FragmentShaderStep::do_step(Data &data)
         glDrawBuffers(texture.depth, &buffers[0]);
         fbo_->set_texture(0, last_texture);
         program.set_texture(0, "tex", &texture);
+        glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
 
         program.set_uniform("v63", counter_);
         program.set_uniform("stage", (uint32_t)stage);

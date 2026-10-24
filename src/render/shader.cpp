@@ -402,6 +402,7 @@ void Program::set_texture(int value, const std::string &name, const Texture *tex
     set_uniform(name, value);
     glActiveTexture(GL_TEXTURE0 + value);
     glBindTexture(texture->target, texture->gl_tex_num);
+    glBindSampler(value, 0);
 }
 
 // void Program::set_texture(int value, const std::string& name, const TextureArray* texture) const {

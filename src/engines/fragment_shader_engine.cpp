@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "render/framebuffer.hpp"
+#include "render/detail/fullscreen_pass.hpp"
 #include "render/renderSurface.hpp"
 #include "render/shader.hpp"
 #include "render/texture.hpp"
@@ -84,10 +85,10 @@ void FragmentShaderEngine::step(Data& data)
     auto& program_data = data.get_element<FragmentProgramData>(fragment_name_);
     auto& program = program_data.get_program();
     auto& texture_data = data.get_element<TextureData>(texture_name_);
-    glViewport(0, 0, texture_data.get_texture().width, texture_data.get_texture().height);
     if (!program.use())
         return;
     fbo_->use();
+    render_detail::setup_fullscreen_pass(texture_data.width(), texture_data.height());
     for (uint32_t stage = 0; stage < stages_; stage++)
     {
         auto& texture = texture_data.get_texture();

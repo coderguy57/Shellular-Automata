@@ -17,21 +17,25 @@ vec4 get_color(int x, int y, int layer) {
     return imageLoad(inputImage, ivec3(coord, layer));
 }
 
-vec4 doCalc() {
-    vec4 colul = -1*get_color(-1, -1, 0);
-    vec4 colml = -2*get_color(-1, 0, 0);
-    vec4 coldl = -1*get_color(-1, 1, 0);
+vec4 gradient() {
+    vec4 colul = -3*get_color(-1, -1, 0);
+    vec4 colum = -10*get_color(0, -1, 0);
+    vec4 colur = -3*get_color(1, -1, 0);
 
-    vec4 colur = +1*get_color(1, -1, 0);
-    vec4 colmr = +2*get_color(1, 0, 0);
-    vec4 coldr = +1*get_color(1, 1, 0);
+    vec4 coldl = +3*get_color(-1, 1, 0);
+    vec4 coldm = +10*get_color(0, 1, 0);
+    vec4 coldr = +3*get_color(1, 1, 0);
 
-    vec4 res = colul + colml + coldl + colur + colmr + coldr;
-    return res / 8;
+    vec4 res = colul + colum + colur + coldl + coldm + coldr;
+    // Normalized Scharr derivative: a unit ramp produces a unit gradient.
+    return res / 32;
 }
 
 void main() {
-    vec4 res = doCalc();
+    if (any(greaterThanEqual(ivec3(gl_GlobalInvocationID), imageSize(outputImage)))) {
+        return;
+    }
+    vec4 res = gradient();
     ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
 
     vec4 vel = imageLoad(vel_in, ivec3(coord, 0));

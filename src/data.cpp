@@ -13,14 +13,6 @@ TextureData::TextureData(uint32_t width, uint32_t height, uint32_t depth, Textur
     texture1_(width, height, depth, texture_array_options(options)) {
 }
 
-TextureData::TextureData(Texture&& texture) 
-    : DataElement(),
-    texture0_(texture),
-    texture1_(texture.width, texture.height, texture.depth, texture.options),
-    tex0_last_updated_(true) {
-    assert(texture.options.target == GL_TEXTURE_2D_ARRAY);
-}
-
 void TextureData::bind(GLuint layout) {
     auto& in_texture = tex0_last_updated_ ? texture0_ : texture1_;
     in_texture.bind();

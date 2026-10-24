@@ -1,4 +1,5 @@
 #include "mutation_control.hpp"
+#include "detail/shortcuts.hpp"
 
 #include <time.h>
 
@@ -342,22 +343,23 @@ void MutationControl::draw()
     //     _reset = true;
     //     _frames = 0;
     // }
-    if (ImGui::IsKeyPressed('P'))
+    const bool shortcuts = controller_detail::shortcuts_allowed();
+    if (shortcuts && ImGui::IsKeyPressed('P', false))
     {
         _clear = true;
     }
-    if (ImGui::IsKeyPressed('S'))
+    if (shortcuts && ImGui::IsKeyPressed('S', false))
     {
         _mutation_save = _mutation;
     }
-    if (ImGui::IsKeyPressed('L'))
+    if (shortcuts && ImGui::IsKeyPressed('L', false))
     {
         _mutation = _mutation_save;
         _reset = true;
         _frames = 0;
     }
 
-    if (ImGui::IsKeyPressed('V'))
+    if (shortcuts && ImGui::IsKeyPressed('V', false))
     {
         for (size_t i = 0; i < 48; i++)
         {

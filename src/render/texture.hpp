@@ -57,6 +57,7 @@ class Texture
 {
 public:
     Texture(uint32_t width, uint32_t height, uint32_t depth, TextureOptions options = default_options, const void *data = nullptr);
+    ~Texture();
     GLuint gl_tex_num;
     void bind() const;
     void gen_mipmap() const;

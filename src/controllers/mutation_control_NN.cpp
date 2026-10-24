@@ -1,6 +1,9 @@
 #include "mutation_control_NN.hpp"
+#include "detail/shortcuts.hpp"
 
+#include <algorithm>
 #include <time.h>
+#include <utility>
 
 #include "imgui.h"
 #include "render/shader.hpp"
@@ -12,86 +15,90 @@ static uint32_t u32_upk(uint32_t u32, uint32_t bts, uint32_t off)
 }
 
 MutationControlNN::MutationControlNN(std::string fragment_name)
-: _fragment_name{fragment_name}
+: _fragment_name{std::move(fragment_name)}
 {
     srand(time(NULL));
     _seed = time(NULL);
-    for (size_t i = 0; i < 64; i++)
-    {
-        if (i >= 12 && i < 36)
-            _mutation.push_back(128 + (0 << 8) + (128 << 16) + (128 << 24));
-        else
-            _mutation.push_back(0);
-    }
-    // _mutation[0] = 1534876570;
-    // _mutation[1] = 3102187896;
-    // _mutation[2] = 383180533;
-    // _mutation[3] = 3911937888;
-    // _mutation[4] = 1713008546;
-    // _mutation[5] = 3183668977;
-    // _mutation[6] = 163787620;
-    // _mutation[7] = 1570659573;
-    // _mutation[8] = 4275609029;
-    // _mutation[9] = 1409283414;
-    // _mutation[10] = 1517509157;
-    // _mutation[11] = 4185999792;
-    // _mutation[12] = 1785950172;
-    // _mutation[13] = 1839866699;
-    // _mutation[14] = 3464288272;
-    // _mutation[15] = 894531137;
-    // _mutation[16] = 931560489;
-    // _mutation[17] = 2107890683;
-    // _mutation[18] = 69319769;
-    // _mutation[19] = 2430523639;
-    // _mutation[20] = 769976078;
-    // _mutation[21] = 2822674395;
-    // _mutation[22] = 2653587597;
-    // _mutation[23] = 1512850439;
-    // _mutation[24] = 1053467775;
-    // _mutation[25] = 2833240997;
-    // _mutation[26] = 1075074238;
-    // _mutation[27] = 1129631768;
-    // _mutation[28] = 1352606717;
-    // _mutation[29] = 3469685548;
-    // _mutation[30] = 2802655431;
-    // _mutation[31] = 2318177844;
-    // _mutation[32] = 3425762429;
-    // _mutation[33] = 543502637;
-    // _mutation[34] = 2736492674;
-    // _mutation[35] = 3676755342;
-    // _mutation[36] = 1248651794;
-    // _mutation[37] = 1223860922;
-    // _mutation[38] = 943980818;
-    // _mutation[39] = 330461460;
-    // _mutation[40] = 1717743274;
-    // _mutation[41] = 2286157824;
-    // _mutation[42] = 295261525;
-    // _mutation[43] = 1713547946;
-    // _mutation[44] = 2339061161;
-    // _mutation[45] = 2680507410;
-    // _mutation[46] = 3285330708;
+    _mutation.assign(64, 0u);
+    std::fill(_mutation.begin() + 12, _mutation.begin() + 36, 0x80808080u);
 
-    // _mutation[47] = 2831848434;
-    // mutation[48] = 0;
-    // mutation[49] = 0;
-    // mutation[50] = 0;
-    // mutation[51] = 0;
-    // mutation[52] = 0;
-    // mutation[53] = 0;
-    // mutation[54] = 0;
-    // mutation[55] = 0;
-    // mutation[56] = 0;
-    // mutation[57] = 0;
-    // mutation[58] = 0;
-    // mutation[59] = 0;
-    // mutation[60] = 0;
-    // _mutation[61] = 1083179006;
-    // _mutation[62] = 1116152287;
-    // _mutation[63] = 1174405259;
+    // Start each RGB channel with local excitation and broader inhibition.
+    for (uint32_t channel = 0; channel < 3; channel++) {
+        const uint32_t rule = channel * 2;
+        _mutation[channel] = 0x00f00007u;
+        _mutation[12 + rule] = 0x80808082u;
+        _mutation[13 + rule] = 0x8080807fu;
+        _mutation[38] |= (channel << (rule * 4)) | (channel << ((rule + 1) * 4));
+        _mutation[41] |= (channel << (rule * 4)) | (channel << ((rule + 1) * 4));
+    }
+    _mutation[0] = 1534876570;
+    _mutation[1] = 3102187896;
+    _mutation[2] = 383180533;
+    _mutation[3] = 3911937888;
+    _mutation[4] = 1713008546;
+    _mutation[5] = 3183668977;
+    _mutation[6] = 163787620;
+    _mutation[7] = 1570659573;
+    _mutation[8] = 4275609029;
+    _mutation[9] = 1409283414;
+    _mutation[10] = 1517509157;
+    _mutation[11] = 4185999792;
+    _mutation[12] = 1785950172;
+    _mutation[13] = 1839866699;
+    _mutation[14] = 3464288272;
+    _mutation[15] = 894531137;
+    _mutation[16] = 931560489;
+    _mutation[17] = 2107890683;
+    _mutation[18] = 69319769;
+    _mutation[19] = 2430523639;
+    _mutation[20] = 769976078;
+    _mutation[21] = 2822674395;
+    _mutation[22] = 2653587597;
+    _mutation[23] = 1512850439;
+    _mutation[24] = 1053467775;
+    _mutation[25] = 2833240997;
+    _mutation[26] = 1075074238;
+    _mutation[27] = 1129631768;
+    _mutation[28] = 1352606717;
+    _mutation[29] = 3469685548;
+    _mutation[30] = 2802655431;
+    _mutation[31] = 2318177844;
+    _mutation[32] = 3425762429;
+    _mutation[33] = 543502637;
+    _mutation[34] = 2736492674;
+    _mutation[35] = 3676755342;
+    _mutation[36] = 1248651794;
+    _mutation[37] = 1223860922;
+    _mutation[38] = 943980818;
+    _mutation[39] = 330461460;
+    _mutation[40] = 1717743274;
+    _mutation[41] = 2286157824;
+    _mutation[42] = 295261525;
+    _mutation[43] = 1713547946;
+    _mutation[44] = 2339061161;
+    _mutation[45] = 2680507410;
+    _mutation[46] = 3285330708;
+    _mutation[47] = 2831848434;
+    _mutation[48] = 0;
+    _mutation[49] = 0;
+    _mutation[50] = 0;
+    _mutation[51] = 0;
+    _mutation[52] = 0;
+    _mutation[53] = 0;
+    _mutation[54] = 0;
+    _mutation[55] = 0;
+    _mutation[56] = 0;
+    _mutation[57] = 0;
+    _mutation[58] = 0;
+    _mutation[59] = 0;
+    _mutation[60] = 0;
+    _mutation[61] = 1083179006;
+    _mutation[62] = 1116152287;
+    _mutation[63] = 1174405259;
     for (size_t i = 0; i < 24 * 4; i++)
     {
         uint32_t scale = _mutation[12 + i / 4];
-        uint8_t scale_i = u32_upk(scale, 8u, i * 8u);
+        uint8_t scale_i = u32_upk(scale, 8u, (i % 4) * 8u);
         _mutation_scale.push_back(scale_i);
     }
     _mutation_save = _mutation;
@@ -314,8 +321,10 @@ void MutationControlNN::draw_mutation_window()
     }
     for (size_t i = 0; i < 24; i++)
     {
-        _mutation[12 + i] = _mutation_scale[i * 4];
-        _mutation[12 + i] += _mutation_scale[i * 4 + 1] << 8;
+        _mutation[12 + i] = 0u;
+        for (uint32_t byte = 0; byte < 4; byte++) {
+            _mutation[12 + i] |= uint32_t(_mutation_scale[i * 4 + byte]) << (byte * 8);
+        }
     }
 
     ImGui::End();
@@ -328,22 +337,19 @@ void MutationControlNN::draw()
     //     _reset = true;
     //     _frames = 0;
     // }
-    if (ImGui::IsKeyPressed('P'))
-    {
-        _clear = true;
-    }
-    if (ImGui::IsKeyPressed('S'))
+    const bool shortcuts = controller_detail::shortcuts_allowed();
+    if (shortcuts && ImGui::IsKeyPressed('S', false))
     {
         _mutation_save = _mutation;
     }
-    if (ImGui::IsKeyPressed('L'))
+    if (shortcuts && ImGui::IsKeyPressed('L', false))
     {
         _mutation = _mutation_save;
         _reset = true;
         _frames = 0;
     }
 
-    if (ImGui::IsKeyPressed('V'))
+    if (shortcuts && ImGui::IsKeyPressed('V', false))
     {
         for (size_t i = 0; i < 48; i++)
         {
@@ -366,11 +372,6 @@ void MutationControlNN::draw()
             //     _frames = 0;
             // }
             // ImGui::Separator();
-            if (ImGui::MenuItem("Clear", "P"))
-            {
-                _clear = true;
-            }
-            ImGui::Separator();
             if (ImGui::MenuItem("Mutate", "V"))
             {
                 for (size_t i = 0; i < 48; i++)
@@ -400,7 +401,7 @@ void MutationControlNN::draw()
     for (size_t i = 0; i < 24 * 4; i++)
     {
         uint32_t scale = _mutation[12 + i / 4];
-        uint8_t scale_i = u32_upk(scale, 8u, i * 8u);
+        uint8_t scale_i = u32_upk(scale, 8u, (i % 4) * 8u);
         _mutation_scale[i] = scale_i;
     }
 
@@ -441,17 +442,13 @@ void MutationControlNN::update(Data& data)
     program.set_uniform("mode", (uint32_t)_mode);
     if (_reset)
         program.set_uniform("cmd", (uint32_t)1);
-    else if (_clear)
-        program.set_uniform("cmd", (uint32_t)2);
     else
         program.set_uniform("cmd", (uint32_t)0);
     program.set_uniform("zoom", _zoom);
     program.set_uniform("scale", _scale);
     program.set_uniform("frames", _frames);
     program.set_uniform("rand_seed", _seed % (1 << 16));
-    // program->set_uniform("stage", (uint32_t)frames % 4);
     _reset = false;
-    _clear = false;
     _frames++;
     _seed++;
 

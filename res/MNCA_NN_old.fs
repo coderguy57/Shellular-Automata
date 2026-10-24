@@ -241,5 +241,5 @@ void main() {
 	// res_v = res_v;
 	res_v[3] = 1.0;
 
-	out_col = res_v;
+	out_col = clamp(res_v, 0.0, 1.0);
 }

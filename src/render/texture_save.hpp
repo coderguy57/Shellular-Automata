@@ -1,141 +1,39 @@
 #pragma once
 
-#include <stdio.h>
-#include <thread>
-#include <mutex>
-#include <string.h>
 #include <GL/glew.h>
-#include <fstream>
-#include <filesystem>
+#include <cstdint>
+#include <string>
 
 #include "texture.hpp"
-#include "utils/image_load.hpp"
-#include "utils/print.hpp"
 
 class TextureSave
 {
 public:
-    TextureSave(std::string filename, Texture texture) : _texture{texture}
-    {
-        _filename = filename;
-        _width = _texture.width;
-        _height = _texture.height;
+    enum class Status { Pending, Saved, Failed };
 
-        _stride = _channel_count * _width;
+    struct Result {
+        Status status = Status::Pending;
+        const char* error = "";
+    };
 
-        _data_size = _stride * _height;
+    TextureSave(std::string filename, const Texture& texture);
+    ~TextureSave();
 
-        glGenBuffers(1, &_pbo);
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, _pbo);
-        glBufferData(GL_PIXEL_PACK_BUFFER, _data_size, NULL, GL_STREAM_DRAW);
+    TextureSave(const TextureSave&) = delete;
+    TextureSave& operator=(const TextureSave&) = delete;
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture.gl_tex_num);
-
-        glGetTexImage(GL_TEXTURE_2D,
-                      0,
-                      GL_RGB,
-                      GL_UNSIGNED_BYTE,
-                      (GLvoid *)0);
-        _sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-        glFlush();
-    }
-
-    void try_save()
-    {
-        if (_done)
-            return;
-
-        GLint result;
-
-        glGetSynciv(_sync, GL_SYNC_STATUS, sizeof(result), NULL, &result);
-        if (result == GL_SIGNALED)
-        {
-            glBindBuffer(GL_PIXEL_PACK_BUFFER, _pbo);
-            GLbyte *src = (GLbyte*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
-
-            if (src)
-            {
-                std::filesystem::create_directory("../out");
-                std::string fname = "../out/" + _filename + ".PAM";
-                std::ofstream file(fname.c_str(), std::ios::out | std::ios::binary);
-                file << "P7"
-                     << "\n"
-                     << "WIDTH " << _width << "\n"
-                     << "HEIGHT " << _height << "\n"
-                     << "DEPTH "
-                     << "3"
-                     << "\n"
-                     << "MAXVAL "
-                     << "255"
-                     << "\n"
-                     << "TUPLTYPE "
-                     << "RGB"
-                     << "\n"
-                     << "ENDHDR"
-                     << "\n";
-
-                file.write((const char*)(src), _width * _height * 3);
-                file.close();
-                free(src);
-            }
-
-            glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-            glDeleteBuffers(1, &_pbo);
-            _pbo = 0;
-            _done = true;
-        }
-    }
-
-    bool is_done()
-    {
-        return _done;
-    }
+    [[nodiscard]] Result try_save();
+    bool is_done() const;
 
 private:
-    int _width;
-    int _height;
-    int _channel_count = 3;
+    void release() noexcept;
+    Result finish(Status status, const char* error = "") noexcept;
 
-    int _stride;
-    GLsync _sync;
-
-    int _data_size;
+    uint32_t _width;
+    uint32_t _height;
+    GLsizei _data_size;
     std::string _filename;
-    
-    Texture _texture;
-    GLuint _pbo;
-    bool _done = false;
+    GLsync _sync = nullptr;
+    GLuint _pbo = 0;
+    Result _result;
 };
-
-template<typename T>
-std::optional<TextureBuffer<T>> save_texture_directly(const Texture& texture, const TextureOptions& options) {
-    texture.bind();
-
-    // Calculate the size of the buffer
-    GLint channels = 0;
-    switch (options.format) {
-        case GL_RED: channels = 1; break;
-        case GL_RGB: channels = 3; break;
-        case GL_RGBA: channels = 4; break;
-        // Add cases for other formats as needed
-        default:
-            print_error("Unsupported format: %d", options.format);
-            return std::nullopt;
-    }
-
-    TextureBuffer<T> buffer;
-    buffer.width = texture.width;
-    buffer.height = texture.height;
-    buffer.depth = texture.depth;
-    buffer.channels = channels;
-    buffer.data = std::make_unique<T[]>(buffer.size());
-
-    // Read the texture data
-    glGetTexImage(texture.target, 0, options.format, options.type, buffer.data.get());
-
-    // Unbind the texture
-    glBindTexture(texture.target, 0);
-
-    return buffer;
-}

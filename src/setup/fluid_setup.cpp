@@ -10,7 +10,6 @@
 #include "controllers/init_texture_control.hpp"
 #include "controllers/engine_control.hpp"
 #include "controllers/shader_control.hpp"
-#include "controllers/hotkey_control.hpp"
 #include "simulation_setup.hpp"
 #include "engines/compute_shader_engine.hpp"
 #include "engines/fragment_shader_engine.hpp"

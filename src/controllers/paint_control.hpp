@@ -28,12 +28,14 @@ private:
     std::unique_ptr<Framebuffer> fbo_;
     std::unique_ptr<RenderSurface> surface_;
     std::string fragment_name_;
-    glm::vec2 last_cursor_pos_;
+    glm::vec2 last_cursor_pos_ = glm::vec2(0.0f);
+    bool was_painting_ = false;
 
     bool show_options_ = false;
-    int cursor_size_ = 1;
+    int cursor_size_ = 10;
     bool cursor_smooth_ = true;
     int layer_ = 0;
+    int layer_count_ = 1;
     glm::vec3 color_ = glm::vec3(1, 1, 1);
     glm::bvec3 color_mask_ = glm::vec3(true, true, true);
 };

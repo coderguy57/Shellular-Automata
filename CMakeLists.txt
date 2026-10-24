@@ -11,9 +11,6 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
 link_directories(/usr/local/lib)
 
-#file(GLOB IMGUI_SRC "${CMAKE_SOURCE_DIR}/lib/*.cpp")
-#include_directories(${CMAKE_SOURCE_DIR}/lib)
-
 include_directories("dependencies/stb")
 
 include_directories("${PROJECT_SOURCE_DIR}")
@@ -24,8 +21,6 @@ target_compile_options(ShellularAutomata PRIVATE
 	$<$<CXX_COMPILER_ID:GNU>:     $<$<NOT:$<CONFIG:Debug>>:-O3>>
 	$<$<CXX_COMPILER_ID:Clang>:   $<$<NOT:$<CONFIG:Debug>>:-O3>>
 	$<$<CXX_COMPILER_ID:MSVC>:    $<$<NOT:$<CONFIG:Debug>>:/Ot>>)
-
-#target_link_libraries(ShellularAutomata PUBLIC GL GLEW dl glfw)
 
 add_subdirectory(dependencies)
 

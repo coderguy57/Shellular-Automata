@@ -56,6 +56,10 @@ Texture::Texture(uint32_t _width, uint32_t _height, uint32_t _depth, TextureOpti
     glTexParameteri(target, GL_TEXTURE_MAG_FILTER, options.mag_filter);
 }
 
+Texture::~Texture() {
+    glDeleteTextures(1, &gl_tex_num);
+}
+
 /**
  * Binds the texture to the current OpenGL context
  */
@@ -70,12 +74,4 @@ void Texture::gen_mipmap() const
 void Texture::bind() const
 {
     glBindTexture(target, gl_tex_num);
-}
-
-/**
- * Deletes the OpenGL representation of this texture
- */
-void Texture::delete_opengl()
-{
-    glDeleteTextures(1, &gl_tex_num);
 }
