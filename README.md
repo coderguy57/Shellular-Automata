@@ -2,24 +2,24 @@
 
 <img src="shell.jpg" width="50%" height="50%">
 
-An continuous CA engine building on the works of [Slackermanz](https://github.com/Slackermanz/VulkanAutomata).
+Shellular Automata is an experimental GPU playground for artificial life
+(ALife). It explores continuous and multi-neighborhood cellular automata,
+within the broader family of systems represented by
+[Lenia](https://chakazul.github.io/lenia.html).
 
-## Build on Linux
+[![Conservative MNCA demonstration](https://img.youtube.com/vi/2UpSYgUZbj0/hqdefault.jpg)](https://www.youtube.com/watch?v=2UpSYgUZbj0)
 
-### Debian-based distros
-Install all dependencies with this command:
-```
-sudo apt install -y build-essential libglew-dev libglfw3-dev
-```
+The cellular-automata work builds on the work of
+[Slackermanz](https://github.com/Slackermanz/VulkanAutomata).
 
-The build with these commands once all the dependencies are met:
-```
-mkdir build && cd build
-cmake ..
-make -j
-```
+The repository also contains 2D fluid simulations.
 
-Then run with 
-```
-./ShellularAutomata
+## Build and run
+
+After cloning the repository:
+```sh
+git submodule update --init --recursive
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+./build/ShellularAutomata
 ```
