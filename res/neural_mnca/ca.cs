@@ -4,12 +4,15 @@ layout(rgba32f, binding = 0) readonly uniform image2DArray state_image;
 layout(rgba32f, binding = 2) writeonly uniform image2DArray output_image;
 
 // Normalized 39-input, 32-Gaussian, 3-output RBF network.
-layout(std430, binding = 4) readonly buffer NeuralRule {
+struct RbfRule {
     float input_weights[1248];
     float centers[32];
     float widths[32];
     float output_weights[96];
     float output_bias[3];
+};
+layout(std430, binding = 4) readonly buffer NeuralRule {
+    RbfRule rules[];
 };
 
 //! option "Time step" exp (0.005, 1.0)
@@ -55,6 +58,11 @@ vec3 tile_rgb(ivec2 position) {
 }
 
 void main() {
+    int layer = int(gl_WorkGroupID.z);
+    // Layer rejection is uniform across the workgroup, before any shared-memory barrier.
+    if (layer >= imageSize(state_image).z || layer >= imageSize(output_image).z ||
+        layer >= rules.length())
+        return;
     ivec2 size = imageSize(state_image).xy;
     // Keep modulo operands nonnegative, including when a texture is smaller than the halo.
     ivec2 wrap_bias = ((ivec2(RADIUS) + size - 1) / size) * size;
@@ -62,14 +70,14 @@ void main() {
     for (uint index = gl_LocalInvocationIndex; index < 1600u; index += 256u) {
         ivec2 position = origin + ivec2(int(index) % TILE_SIDE, int(index) / TILE_SIDE);
         position %= size;
-        tile[index] = imageLoad(state_image, ivec3(position, 0));
+        tile[index] = imageLoad(state_image, ivec3(position, layer));
     }
 
     // Partial edge workgroups must load their halo and reach this barrier too.
     barrier();
     ivec3 coord = ivec3(gl_GlobalInvocationID);
     if (any(greaterThanEqual(coord, imageSize(output_image))) ||
-        any(greaterThanEqual(coord.xy, size)) || coord.z != 0)
+        any(greaterThanEqual(coord.xy, size)))
         return;
 
     ivec2 center = ivec2(gl_LocalInvocationID.xy) + ivec2(RADIUS);
@@ -77,9 +85,9 @@ void main() {
     float hidden[32];
     for (int neuron = 0; neuron < 32; ++neuron) {
         int base = neuron * 39;
-        hidden[neuron] = input_weights[base] * current.r
-            + input_weights[base + 1] * current.g
-            + input_weights[base + 2] * current.b;
+        hidden[neuron] = rules[layer].input_weights[base] * current.r
+            + rules[layer].input_weights[base + 1] * current.g
+            + rules[layer].input_weights[base + 2] * current.b;
     }
 
     vec3 near = vec3(0.0);
@@ -100,22 +108,23 @@ void main() {
         // Consume the ring immediately instead of writing a neighborhood texture.
         for (int neuron = 0; neuron < 32; ++neuron) {
             int base = neuron * 39 + 3 + ring * 3;
-            hidden[neuron] += input_weights[base] * average.r
-                + input_weights[base + 1] * average.g
-                + input_weights[base + 2] * average.b;
+            hidden[neuron] += rules[layer].input_weights[base] * average.r
+                + rules[layer].input_weights[base + 1] * average.g
+                + rules[layer].input_weights[base + 2] * average.b;
         }
     }
 
     for (int neuron = 0; neuron < 32; ++neuron) {
-        float distance = (hidden[neuron] - centers[neuron]) / max(widths[neuron], 0.005);
+        float distance = (hidden[neuron] - rules[layer].centers[neuron])
+            / max(rules[layer].widths[neuron], 0.005);
         hidden[neuron] = exp(-distance * distance);
     }
 
     vec3 rate;
     for (int channel = 0; channel < 3; ++channel) {
-        float value = output_bias[channel];
+        float value = rules[layer].output_bias[channel];
         for (int neuron = 0; neuron < 32; ++neuron)
-            value += output_weights[channel * 32 + neuron] * hidden[neuron];
+            value += rules[layer].output_weights[channel * 32 + neuron] * hidden[neuron];
         rate[channel] = value;
     }
 

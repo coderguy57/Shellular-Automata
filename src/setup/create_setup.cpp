@@ -3,7 +3,8 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
-#include "controllers/mutation_control_NN.hpp"
+#include "automata/slack/rule_model.hpp"
+#include "controllers/slack_rule_control.hpp"
 #include "controllers/statistics_control.hpp"
 #include "controllers/paint_control.hpp"
 #include "controllers/recorder_control.hpp"
@@ -112,13 +113,18 @@ SimulationSetup setup_conservative() {
     }
 
     auto fragment_shader = data.add_element<FragmentProgramData>("frag_shader", "MNCA_NN.fs");
+    auto& rule_model = *data.add_element<slack::RuleModel>("slack_rule");
 
     std::unique_ptr<ComputeShaderEngine> engine = std::make_unique<ComputeShaderEngine>();
 
     std::vector<FragmentShaderInput> inputs;
 
     create_compute_shader_step(engine.get(), "util/copy.glsl", {texture_data}, {mnca_texture});
-    engine->add_step<FragmentShaderStep>(*fragment_shader, inputs, *mnca_texture, 1);
+    engine->add_step<FragmentShaderStep>(*fragment_shader, inputs, *mnca_texture, 1,
+        [&rule_model](FragmentProgram& program) {
+            slack::bind_rule(program, rule_model.rule());
+            rule_model.dirty = false;
+        });
     auto* demand_step = create_compute_shader_step(engine.get(), "fluidMNCA/mnca_delta.cs", {mnca_texture, texture_data}, {demand})
         ->set_option("Demand scale", 5.0f)
         ->set_option("Use absolute demand", true);
@@ -196,7 +202,7 @@ SimulationSetup setup_conservative() {
 
     SimulationSetup simulation_setup(std::move(engine), std::move(viewer), std::move(data));
 
-    simulation_setup.add_controller_back(std::make_unique<MutationControlNN>(*fragment_shader));
+    simulation_setup.add_controller_back(std::make_unique<SlackRuleControl>(rule_model));
 
     simulation_setup.add_controller_back(std::make_unique<RecorderControl>(*texture_data));
 

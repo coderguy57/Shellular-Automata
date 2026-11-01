@@ -1,12 +1,14 @@
 #pragma once
 
 #include <unordered_map>
+#include <functional>
 #include <vector>
 #include <memory>
 #include <string>
 #include <GL/glew.h>
 
 #include "engines/engine.hpp"
+#include "engines/step.hpp"
 #include "render/texture.hpp"
 #include "render/framebuffer.hpp"
 #include "render/renderSurface.hpp"
@@ -21,15 +23,11 @@ struct FragmentShaderInput
     std::string shader_name;
     std::string data_name;
 };
-struct Step
-{
-    virtual ~Step(){};
-    virtual void do_step(Data &data) = 0;
-};
 struct FragmentShaderStep : public Step
 {
 public:
-    FragmentShaderStep(std::string fragment_name, std::vector<FragmentShaderInput> inputs, std::string output, int stages);
+    FragmentShaderStep(std::string fragment_name, std::vector<FragmentShaderInput> inputs, std::string output, int stages,
+                       std::function<void(FragmentProgram&)> prepare = {});
     void do_step(Data &data) override;
 
 private:
@@ -38,6 +36,7 @@ private:
     std::string fragment_name_;
     std::vector<FragmentShaderInput> inputs_;
     std::string output_;
+    std::function<void(FragmentProgram&)> prepare_;
     uint32_t stages_;
     uint32_t counter_ = 1560281088;
 };
@@ -52,6 +51,9 @@ class ComputeShaderStep : public Step
 {
 public:
     ComputeShaderStep(std::string compute_path, std::vector<ComputeShaderInput> inputs, std::vector<ComputeShaderInput> outputs);
+    // The borrowed program must outlive this step.
+    ComputeShaderStep(ComputeProgram& program, std::string name,
+                      std::vector<ComputeShaderInput> inputs, std::vector<ComputeShaderInput> outputs);
     void do_step(Data &data) override;
     ComputeProgram& program()
     {
@@ -119,7 +121,8 @@ public:
     };
 
 private:
-    std::unique_ptr<ComputeProgram> step_;
+    std::unique_ptr<ComputeProgram> owned_program_;
+    ComputeProgram* step_;
     std::string compute_path_;
     std::vector<ComputeShaderInput> inputs_;
     std::vector<ComputeShaderInput> outputs_;

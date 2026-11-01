@@ -1,5 +1,4 @@
 #include "mutation_control.hpp"
-#include "detail/shortcuts.hpp"
 
 #include <time.h>
 
@@ -343,7 +342,7 @@ void MutationControl::draw()
     //     _reset = true;
     //     _frames = 0;
     // }
-    const bool shortcuts = controller_detail::shortcuts_allowed();
+    const bool shortcuts = shortcuts_allowed();
     if (shortcuts && ImGui::IsKeyPressed('P', false))
     {
         _clear = true;

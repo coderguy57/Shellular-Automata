@@ -3,6 +3,7 @@
 #include <GL/glew.h>
 
 #include <vector>
+#include <utility>
 
 #include "render/framebuffer.hpp"
 #include "render/detail/fullscreen_pass.hpp"
@@ -11,8 +12,9 @@
 #include "render/texture.hpp"
 #include "data.hpp"
 
-FragmentShaderEngine::FragmentShaderEngine(std::string frag_path, std::string texture_name, uint32_t stages)
-    : fragment_name_{frag_path}, texture_name_{texture_name}, stages_(stages)
+FragmentShaderEngine::FragmentShaderEngine(std::string frag_path, std::string texture_name, uint32_t stages,
+        std::function<void(FragmentProgram&)> prepare)
+    : fragment_name_{frag_path}, texture_name_{texture_name}, prepare_(std::move(prepare)), stages_(stages)
 {
     surface_ = new RenderSurface();
 
@@ -107,6 +109,8 @@ void FragmentShaderEngine::step(Data& data)
         program.set_uniform("v63", counter_);
         program.set_uniform("stage", (uint32_t)stage);
 
+        if (prepare_)
+            prepare_(program);
         surface_->draw();
         glFinish();
 

@@ -3,6 +3,7 @@
 // Based on Slackermanz/VulkanAutomata. Initialization and painting are separate passes.
 layout(location = 0) out vec4 out_col;
 uniform sampler2DArray tex;
+uniform int layer = 0;
 uniform uint[12] nb;
 uniform uint[24] ur;
 uniform uint[2] us;
@@ -33,7 +34,7 @@ vec4 sample_cell(ivec2 offset) {
     ivec2 size = textureSize(tex, 0).xy;
     ivec2 position = ivec2(gl_FragCoord.xy) + offset;
     position = (position % size + size) % size;
-    return texelFetch(tex, ivec3(position, 0), 0);
+    return texelFetch(tex, ivec3(position, layer), 0);
 }
 
 Neighborhood read_ring(vec2 radius) {

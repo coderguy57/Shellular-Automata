@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include "automata/rule_browser.hpp"
 #include "utils/image_load.hpp"
 #include "fftw3.h"
 #include "engines/compute_shader_engine.hpp"
@@ -527,25 +528,34 @@ TEST_CASE("NN fluid setup moves, paints, and clears material", "[fluidMNCA][open
     CHECK(glGetError() == GL_NO_ERROR);
 }
 
-TEST_CASE("Standalone NN MNCA initializes, evolves, and accepts input", "[mnca_nn][opengl]") {
+TEST_CASE("Slack automata setup initializes, evolves, and accepts input", "[slack][opengl]") {
     OpenGLTestContext context;
     ImGuiTestContext gui;
-    auto simulation = setup_mnca_nn();
+    auto simulation = setup_slack_automata();
     auto& data = simulation.data();
     auto& texture = data.get_element<TextureData>("data_texture");
     auto& engine = dynamic_cast<ComputeShaderEngine&>(simulation.engine());
-    auto& program = data.get_element<FragmentProgramData>("frag_shader").get_program();
+    auto& program = data.get_element<ComputeProgramData>("slack_ca").get_program();
     auto& io = ImGui::GetIO();
 
     size_t texture_count = 0;
     data.for_each_element<TextureData>([&](const std::string& name, TextureData&) {
-        CHECK(name == "data_texture");
+        CHECK((name == "data_texture" || name == "rule_browser_state" || name == "rule_browser_display"));
         ++texture_count;
     });
-    REQUIRE(texture_count == 1);
+    REQUIRE(texture_count == 3);
     REQUIRE(texture.width() == 512);
     REQUIRE(texture.height() == 512);
     REQUIRE(texture.depth() == 1);
+    auto& previews = data.get_element<TextureData>("rule_browser_state");
+    CHECK(previews.width() == rule_browser::preview_size);
+    CHECK(previews.height() == rule_browser::preview_size);
+    CHECK(previews.depth() == rule_browser::browser_count);
+    CHECK(previews.options().internal_format == texture.options().internal_format);
+    auto& display = data.get_element<TextureData>("rule_browser_display");
+    CHECK(display.width() == texture.width());
+    CHECK(display.height() == texture.height());
+    CHECK(display.depth() == 1);
     REQUIRE(engine.compute_steps().empty());
     REQUIRE(program.is_linked());
     REQUIRE(data.get_element<FragmentProgramData>("init_mnca").get_program().is_linked());

@@ -61,6 +61,17 @@ private:
     std::unique_ptr<FragmentProgram> program_;
 };
 
+class ComputeProgramData : public DataElement {
+public:
+    explicit ComputeProgramData(std::string compute_path)
+        : program_(std::make_unique<ComputeProgram>(compute_path)) {}
+    void bind(GLuint) override {}
+    ComputeProgram& get_program() { return *program_; }
+
+private:
+    std::unique_ptr<ComputeProgram> program_;
+};
+
 class Data {
 public:
     template<typename T>

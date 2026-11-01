@@ -24,7 +24,7 @@ controllers:
   #   texture: "data_texture"
   - type: "Recorder"
     texture: "data_texture"
-  - type: "MutationNN"
+  - type: "SlackRule"
     shader: "frag_shader"
   - type: "Shader"
 visualizer:

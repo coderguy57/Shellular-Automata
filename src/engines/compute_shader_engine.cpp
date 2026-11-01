@@ -5,6 +5,8 @@
 #include "render/detail/fullscreen_pass.hpp"
 #include "data.hpp"
 
+#include <utility>
+
 void ComputeShaderEngine::step(Data &data)
 {
     for (auto &step : steps)
@@ -27,11 +29,13 @@ std::vector<ComputeShaderStep*> ComputeShaderEngine::compute_steps()
 
 FragmentShaderStep::FragmentShaderStep(
     std::string fragment_name,
-    std::vector<FragmentShaderInput> inputs, std::string output, int stages)
+    std::vector<FragmentShaderInput> inputs, std::string output, int stages,
+    std::function<void(FragmentProgram&)> prepare)
 {
     fragment_name_ = fragment_name;
     inputs_ = inputs;
     output_ = output;
+    prepare_ = std::move(prepare);
     stages_ = stages;
     fbo_ = std::make_unique<Framebuffer>();
     surface_ = std::make_unique<RenderSurface>();
@@ -64,6 +68,8 @@ void FragmentShaderStep::do_step(Data &data)
         program.set_uniform("v63", counter_);
         program.set_uniform("stage", (uint32_t)stage);
 
+        if (prepare_)
+            prepare_(program);
         surface_->draw();
         glFinish();
 
@@ -76,11 +82,17 @@ void FragmentShaderStep::do_step(Data &data)
 ComputeShaderStep::ComputeShaderStep(
     std::string compute_path,
     std::vector<ComputeShaderInput> inputs, std::vector<ComputeShaderInput> outputs)
+    : owned_program_(std::make_unique<ComputeProgram>(compute_path)), step_(owned_program_.get()),
+      compute_path_(std::move(compute_path)), inputs_(std::move(inputs)), outputs_(std::move(outputs))
 {
-    compute_path_ = compute_path;
-    step_ = std::make_unique<ComputeProgram>(compute_path);
-    inputs_ = inputs;
-    outputs_ = outputs;
+}
+
+ComputeShaderStep::ComputeShaderStep(
+    ComputeProgram& program, std::string name,
+    std::vector<ComputeShaderInput> inputs, std::vector<ComputeShaderInput> outputs)
+    : step_(&program), compute_path_(std::move(name)),
+      inputs_(std::move(inputs)), outputs_(std::move(outputs))
+{
 }
 void ComputeShaderStep::do_step(Data &data)
 {
@@ -106,7 +118,12 @@ void ComputeShaderStep::do_step(Data &data)
         else {
             auto& texture_data = data.get_element<TextureData>(data_work_group_);
             auto& texture = texture_data.get_texture();
-            step_->run(texture.width / step_->local_size_x(), texture.height / step_->local_size_y(), texture.depth / step_->local_size_z());
+            const auto group_count = [](uint32_t size, uint32_t local_size) {
+                return size / local_size + (size % local_size != 0);
+            };
+            step_->run(group_count(texture.width, step_->local_size_x()),
+                       group_count(texture.height, step_->local_size_y()),
+                       group_count(texture.depth, step_->local_size_z()));
         }
         if (memory_barrier_bits != 0)
             glMemoryBarrier(memory_barrier_bits);

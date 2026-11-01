@@ -1,10 +1,13 @@
 #include "simulation_setup_loader.hpp"
 
+#include <functional>
+#include <unordered_map>
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
 #include "controllers/mutation_control.hpp"
-#include "controllers/mutation_control_NN.hpp"
+#include "automata/slack/rule_model.hpp"
+#include "controllers/slack_rule_control.hpp"
 #include "controllers/statistics_control.hpp"
 #include "controllers/paint_control.hpp"
 #include "controllers/recorder_control.hpp"
@@ -66,6 +69,27 @@ SimulationSetup load_simulation_setup(std::string const &path)
         }
     }
 
+    std::unordered_map<std::string, slack::RuleModel*> slack_rules;
+    for (auto controller_node : config["controllers"]) {
+        if (controller_node["type"].as<std::string>() != "SlackRule")
+            continue;
+        auto shader_name = controller_node["shader"].as<std::string>();
+        if (!slack_rules.contains(shader_name)) {
+            auto* model = data.add_element<slack::RuleModel>("slack_rule:" + shader_name);
+            slack_rules.emplace(shader_name, model);
+        }
+    }
+    auto prepare_rule = [&slack_rules](std::string const& shader_name)
+        -> std::function<void(FragmentProgram&)> {
+        auto found = slack_rules.find(shader_name);
+        if (found == slack_rules.end())
+            return {};
+        return [model = found->second](FragmentProgram& program) {
+            slack::bind_rule(program, model->rule());
+            model->dirty = false;
+        };
+    };
+
     // Create the engine component
     std::unique_ptr<Engine> engine;
     FragmentShaderEngine* fragment_engine_for_control = nullptr;
@@ -79,7 +103,8 @@ SimulationSetup load_simulation_setup(std::string const &path)
         int steps = engine_node["steps"].as<int>();
         fragment_shader_name = engine_node["shader"].as<std::string>();
         std::string texture_name = engine_node["texture"].as<std::string>();
-        auto fragment_engine = std::make_unique<FragmentShaderEngine>(fragment_shader_name, texture_name, steps);
+        auto fragment_engine = std::make_unique<FragmentShaderEngine>(
+            fragment_shader_name, texture_name, steps, prepare_rule(fragment_shader_name));
         fragment_engine_for_control = fragment_engine.get();
         engine = std::move(fragment_engine);
     }
@@ -131,7 +156,8 @@ SimulationSetup load_simulation_setup(std::string const &path)
                 int stages = 1;
                 if (step["stages"])
                     stages = step["stages"].as<int>();
-                auto fragment_shader_step = std::make_unique<FragmentShaderStep>(shader_name, inputs, output, stages);
+                auto fragment_shader_step = std::make_unique<FragmentShaderStep>(
+                    shader_name, inputs, output, stages, prepare_rule(shader_name));
                 compute_engine->add_step(std::move(fragment_shader_step));
             }
         }
@@ -176,10 +202,11 @@ SimulationSetup load_simulation_setup(std::string const &path)
             std::string fragment_name = controller_node["shader"].as<std::string>();
             simulation_setup.add_controller_back(std::make_unique<MutationControl>(fragment_name));
         }
-        else if (controller_name == "MutationNN")
+        else if (controller_name == "SlackRule")
         {
             std::string fragment_name = controller_node["shader"].as<std::string>();
-            simulation_setup.add_controller_back(std::make_unique<MutationControlNN>(fragment_name));
+            auto& rule_model = *slack_rules.at(fragment_name);
+            simulation_setup.add_controller_back(std::make_unique<SlackRuleControl>(rule_model));
         }
         else if (controller_name == "Statistics")
         {

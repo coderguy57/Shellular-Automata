@@ -3,6 +3,7 @@
 #include <GL/glew.h>
 #include <glm/vec3.hpp>
 #include <cstdint>
+#include <functional>
 #include <string>
 
 #include "engines/engine.hpp"
@@ -15,7 +16,8 @@ class FragmentProgram;
 class FragmentShaderEngine : public Engine
 {
 public:
-    FragmentShaderEngine(std::string frag_name, std::string texture_name, uint32_t stages = 1);
+    FragmentShaderEngine(std::string frag_name, std::string texture_name, uint32_t stages = 1,
+                         std::function<void(FragmentProgram&)> prepare = {});
     ~FragmentShaderEngine();
     void step(Data& data) override;
 
@@ -32,6 +34,7 @@ private:
     RenderSurface *surface_;
     std::string fragment_name_;
     std::string texture_name_;
+    std::function<void(FragmentProgram&)> prepare_;
     uint32_t stages_;
     uint32_t counter_ = 1560281088;
 };

@@ -1,5 +1,4 @@
 #include "dynamic_control.hpp"
-#include "detail/shortcuts.hpp"
 
 #include "imgui.h"
 
@@ -65,7 +64,7 @@ void DynamicControl::draw()
     }
 
     const auto& io = ImGui::GetIO();
-    if (controller_detail::shortcuts_allowed()) {
+    if (shortcuts_allowed()) {
         for (std::size_t i = 0; i < _actions.size(); i++) {
             const auto& action = _actions[i];
             if (action.callback && action.key && *action.key >= 0 &&

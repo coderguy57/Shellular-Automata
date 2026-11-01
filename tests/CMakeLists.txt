@@ -1,18 +1,25 @@
 cmake_minimum_required(VERSION 3.15)
 
 file(GLOB_RECURSE MAIN_SOURCES
+	${PROJECT_SOURCE_DIR}/automata/*.cpp
 	${PROJECT_SOURCE_DIR}/render/*.cpp
 	${PROJECT_SOURCE_DIR}/utils/*.cpp
 	${PROJECT_SOURCE_DIR}/engines/*.cpp
 	${PROJECT_SOURCE_DIR}/data.cpp
 )
-add_executable(tests_project ${MAIN_SOURCES} "tests.cpp" "dynamic_control_tests.cpp" "recording_tests.cpp" "shader_control_tests.cpp" "fullscreen_pass_tests.cpp" "slack_automata_tests.cpp" "neural_mnca_tests.cpp" "window_loop_tests.cpp"
+add_executable(tests_project ${MAIN_SOURCES} "tests.cpp" "dynamic_control_tests.cpp" "recording_tests.cpp" "shader_control_tests.cpp" "fullscreen_pass_tests.cpp" "slack_automata_tests.cpp" "neural_mnca_tests.cpp" "window_loop_tests.cpp" "neural_browser_tests.cpp"
+    "select_step_tests.cpp" "compute_dispatch_tests.cpp"
+    "rule_model_tests.cpp" "fragment_rule_binding_tests.cpp"
+    ${PROJECT_SOURCE_DIR}/controllers/rule_browser_control.cpp
+    ${PROJECT_SOURCE_DIR}/controllers/rule_control.cpp
+    ${PROJECT_SOURCE_DIR}/controllers/control_group.cpp
     ${PROJECT_SOURCE_DIR}/controllers/dynamic_control.cpp
     ${PROJECT_SOURCE_DIR}/controllers/engine_control.cpp
+    ${PROJECT_SOURCE_DIR}/controllers/gui_control.cpp
     ${PROJECT_SOURCE_DIR}/controllers/init_texture_control.cpp
     ${PROJECT_SOURCE_DIR}/controllers/mutation_control.cpp
-    ${PROJECT_SOURCE_DIR}/controllers/mutation_control_NN.cpp
-    ${PROJECT_SOURCE_DIR}/controllers/neural_mutation_control.cpp
+    ${PROJECT_SOURCE_DIR}/controllers/slack_rule_control.cpp
+    ${PROJECT_SOURCE_DIR}/controllers/neural_rule_control.cpp
     ${PROJECT_SOURCE_DIR}/controllers/paint_control.cpp
     ${PROJECT_SOURCE_DIR}/controllers/recorder_control.cpp
     ${PROJECT_SOURCE_DIR}/controllers/shader_control.cpp
@@ -20,7 +27,7 @@ add_executable(tests_project ${MAIN_SOURCES} "tests.cpp" "dynamic_control_tests.
     ${PROJECT_SOURCE_DIR}/controllers/viewer_control.cpp
     ${PROJECT_SOURCE_DIR}/controllers/window_control.cpp
     ${PROJECT_SOURCE_DIR}/setup/create_setup.cpp
-    ${PROJECT_SOURCE_DIR}/setup/mnca_nn_setup.cpp
+    ${PROJECT_SOURCE_DIR}/setup/slack_automata.cpp
     ${PROJECT_SOURCE_DIR}/setup/neural_mnca_setup.cpp
     ${PROJECT_SOURCE_DIR}/simulation_setup.cpp
     ${PROJECT_SOURCE_DIR}/simulation_setup_loader.cpp
@@ -32,6 +39,8 @@ target_link_libraries(tests_project
     PRIVATE
     Catch2::Catch2
 )
+
+target_sources(tests_project PRIVATE "slack_compute_tests.cpp")
 
 # Add memory leak detection to all tests
 # add_test(NAME MemoryLeaks COMMAND valgrind --leak-check=full --error-exitcode=1 $<TARGET_FILE:tests_project>)
